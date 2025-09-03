@@ -25,6 +25,9 @@
     <Content Include="Components\Pages\Home.razor">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
+    <Content Include="Components\Pages\PuzzleGame.razor">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
     <Content Include="Components\Pages\Weather.razor">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
