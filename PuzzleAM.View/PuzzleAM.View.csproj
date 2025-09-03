@@ -1,15 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
-    <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../PuzzleAM.Model/PuzzleAM.Model.csproj" />
-    <ProjectReference Include="../PuzzleAM.View/PuzzleAM.View.csproj" />
-    <ProjectReference Include="../PuzzleAM.ViewServices/PuzzleAM.ViewServices.csproj" />
   </ItemGroup>
 
 </Project>
