@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36414.22 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PuzzleAM", "PuzzleAM\PuzzleAM.csproj", "{11575F4A-25B6-43D5-AF3C-7A237221A1F9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{11575F4A-25B6-43D5-AF3C-7A237221A1F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11575F4A-25B6-43D5-AF3C-7A237221A1F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11575F4A-25B6-43D5-AF3C-7A237221A1F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11575F4A-25B6-43D5-AF3C-7A237221A1F9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BD9530D9-5AE1-4761-A0F4-82D1EE94C395}
+	EndGlobalSection
+EndGlobal
