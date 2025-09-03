@@ -10,9 +10,10 @@ public partial class PuzzleGame : ComponentBase
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
         var file = e.File;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(10 * 1024 * 1024).ReadAsync(buffer); // limit 10 MB
-        imageDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+        await using var stream = file.OpenReadStream(10 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);        // ensures the full file is read
+        imageDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
     }
 }
 
