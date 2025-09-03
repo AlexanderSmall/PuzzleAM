@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddSingleton<ModalService>();
+builder.Services.AddScoped<ModalService>();
 
 var app = builder.Build();
 
