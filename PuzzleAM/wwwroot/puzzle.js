@@ -186,6 +186,9 @@ function snapPiece(el) {
     const correctY = parseFloat(el.dataset.correctY);
     const currentX = parseFloat(el.style.left);
     const currentY = parseFloat(el.style.top);
+    const pieceWidth = parseFloat(el.dataset.width);
+    const pieceHeight = parseFloat(el.dataset.height);
+    const epsilon = 0.1;
 
     // Snap to correct location if close
     const diffCorrectX = correctX - currentX;
@@ -204,6 +207,11 @@ function snapPiece(el) {
 
         const expectedDx = parseFloat(neighbor.dataset.correctX) - correctX;
         const expectedDy = parseFloat(neighbor.dataset.correctY) - correctY;
+
+        const isHorizontalNeighbor = Math.abs(Math.abs(expectedDx) - pieceWidth) < epsilon && Math.abs(expectedDy) < epsilon;
+        const isVerticalNeighbor = Math.abs(Math.abs(expectedDy) - pieceHeight) < epsilon && Math.abs(expectedDx) < epsilon;
+        if (!isHorizontalNeighbor && !isVerticalNeighbor) continue;
+
         const actualDx = parseFloat(neighbor.style.left) - currentX;
         const actualDy = parseFloat(neighbor.style.top) - currentY;
         const diffX = actualDx - expectedDx;
