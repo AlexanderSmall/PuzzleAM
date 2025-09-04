@@ -1,8 +1,11 @@
-window.createPuzzle = function (imageDataUrl, containerId) {
+window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
     const img = new Image();
     img.onload = function () {
-        const cols = 10;
-        const rows = 10;
+        let cols = Math.round(Math.sqrt(pieceCount));
+        while (pieceCount % cols !== 0) {
+            cols--;
+        }
+        const rows = pieceCount / cols;
         const container = document.getElementById(containerId);
         container.innerHTML = '';
         container.classList.add('puzzle-container');
