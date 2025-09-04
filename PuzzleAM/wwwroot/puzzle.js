@@ -5,7 +5,7 @@ window.createPuzzle = function (imageDataUrl, containerId) {
         const rows = 10;
         const container = document.getElementById(containerId);
         container.innerHTML = '';
-        container.style.position = 'relative';
+        container.classList.add('puzzle-container');
 
         // Scale the image so that it occupies 50% of the page width
         const targetWidth = window.innerWidth * 0.5;
@@ -36,8 +36,7 @@ window.createPuzzle = function (imageDataUrl, containerId) {
                 const piece = document.createElement('canvas');
                 piece.width = pieceWidth + offset * 2;
                 piece.height = pieceHeight + offset * 2;
-                piece.style.position = 'absolute';
-                piece.style.cursor = 'grab';
+                piece.classList.add('puzzle-piece');
 
                 // Randomize starting position to separate the pieces
                 piece.style.left = Math.random() * (scaledWidth - pieceWidth) + 'px';
