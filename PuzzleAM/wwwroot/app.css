@@ -83,6 +83,9 @@ h1:focus {
 .puzzle-container {
     position: relative;
     background-color: transparent;
+    /* Prevent puzzle pieces or their shadows from overflowing and causing
+       scrollbars so the entire page fits within the viewport */
+    overflow: hidden;
 }
 
 .puzzle-board {
