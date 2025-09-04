@@ -36,9 +36,18 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
         // Clear any existing puzzle elements
         container.innerHTML = '';
 
-        // Constrain the puzzle to half the viewport in each dimension
-        const targetWidth = window.innerWidth * 0.5;
-        const targetHeight = window.innerHeight * 0.5;
+        // Determine the available area for the puzzle based on where the
+        // container sits within the page layout. This ensures the puzzle fits
+        // entirely within the visible browser window even when there are
+        // headers, sidebars or other elements taking up space.
+        const containerRect = container.getBoundingClientRect();
+        const availableWidth = window.innerWidth - containerRect.left;
+        const availableHeight = window.innerHeight - containerRect.top;
+
+        // Constrain the puzzle to half of the available viewport space in each
+        // dimension
+        const targetWidth = availableWidth * 0.5;
+        const targetHeight = availableHeight * 0.5;
         const pieceSize = Math.min(targetWidth / cols, targetHeight / rows);
         const scaledWidth = pieceSize * cols;
         const scaledHeight = pieceSize * rows;
@@ -53,13 +62,14 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
         const srcOffsetX = offset / scaleX;
         const srcOffsetY = offset / scaleY;
 
-        // Make the container full screen so pieces can sit around the board
-        container.style.width = window.innerWidth + 'px';
-        container.style.height = window.innerHeight + 'px';
+        // Size the container to the available area so pieces remain within the
+        // viewport without causing scroll bars
+        container.style.width = availableWidth + 'px';
+        container.style.height = availableHeight + 'px';
 
         // Centre point for where the puzzle should be assembled
-        const boardLeft = (window.innerWidth - scaledWidth) / 2;
-        const boardTop = (window.innerHeight - scaledHeight) / 2;
+        const boardLeft = (availableWidth - scaledWidth) / 2;
+        const boardTop = (availableHeight - scaledHeight) / 2;
 
         const buffer = pieceSize; // leave one piece size around the puzzle
         const centralRect = {
@@ -103,17 +113,17 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
                     attempts++;
                     const side = ['top', 'bottom', 'left', 'right'][Math.floor(Math.random() * 4)];
                     if (side === 'top') {
-                        startX = Math.random() * (window.innerWidth - piece.width);
-                        startY = Math.random() * (centralRect.top - piece.height);
+                        startX = Math.random() * Math.max(availableWidth - piece.width, 0);
+                        startY = Math.random() * Math.max(centralRect.top - piece.height, 0);
                     } else if (side === 'bottom') {
-                        startX = Math.random() * (window.innerWidth - piece.width);
-                        startY = centralRect.bottom + Math.random() * (window.innerHeight - centralRect.bottom - piece.height);
+                        startX = Math.random() * Math.max(availableWidth - piece.width, 0);
+                        startY = centralRect.bottom + Math.random() * Math.max(availableHeight - centralRect.bottom - piece.height, 0);
                     } else if (side === 'left') {
-                        startX = Math.random() * (centralRect.left - piece.width);
-                        startY = Math.random() * (window.innerHeight - piece.height);
+                        startX = Math.random() * Math.max(centralRect.left - piece.width, 0);
+                        startY = Math.random() * Math.max(availableHeight - piece.height, 0);
                     } else { // right
-                        startX = centralRect.right + Math.random() * (window.innerWidth - centralRect.right - piece.width);
-                        startY = Math.random() * (window.innerHeight - piece.height);
+                        startX = centralRect.right + Math.random() * Math.max(availableWidth - centralRect.right - piece.width, 0);
+                        startY = Math.random() * Math.max(availableHeight - piece.height, 0);
                     }
                 } while (
                     placedRects.some(r => startX < r.x + r.width && startX + piece.width > r.x &&
