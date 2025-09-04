@@ -3,17 +3,28 @@ window.createPuzzle = function (imageDataUrl, containerId) {
     img.onload = function () {
         const cols = 10;
         const rows = 10;
-        const pieceWidth = img.width / cols;
-        const pieceHeight = img.height / rows;
         const container = document.getElementById(containerId);
         container.innerHTML = '';
         container.style.position = 'relative';
-        container.style.width = img.width + 'px';
-        container.style.height = img.height + 'px';
+
+        // Scale the image so that it occupies 50% of the page width
+        const targetWidth = window.innerWidth * 0.5;
+        const scale = targetWidth / img.width;
+        const scaledWidth = targetWidth;
+        const scaledHeight = img.height * scale;
+
+        const pieceWidth = scaledWidth / cols;
+        const pieceHeight = scaledHeight / rows;
+        const srcPieceWidth = img.width / cols;
+        const srcPieceHeight = img.height / rows;
+        const offset = Math.min(pieceWidth, pieceHeight) / 4;
+        const srcOffset = offset / scale;
+
+        container.style.width = scaledWidth + 'px';
+        container.style.height = scaledHeight + 'px';
 
         const hTabs = Array.from({ length: rows }, () => Array(cols));
         const vTabs = Array.from({ length: rows }, () => Array(cols));
-        const offset = Math.min(pieceWidth, pieceHeight) / 4;
 
         for (let y = 0; y < rows; y++) {
             for (let x = 0; x < cols; x++) {
@@ -29,13 +40,23 @@ window.createPuzzle = function (imageDataUrl, containerId) {
                 piece.style.cursor = 'grab';
 
                 // Randomize starting position to separate the pieces
-                piece.style.left = Math.random() * (img.width - pieceWidth) + 'px';
-                piece.style.top = Math.random() * (img.height - pieceHeight) + 'px';
+                piece.style.left = Math.random() * (scaledWidth - pieceWidth) + 'px';
+                piece.style.top = Math.random() * (scaledHeight - pieceHeight) + 'px';
 
                 const ctx = piece.getContext('2d');
                 drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, offset);
                 ctx.clip();
-                ctx.drawImage(img, offset - x * pieceWidth, offset - y * pieceHeight);
+                ctx.drawImage(
+                    img,
+                    x * srcPieceWidth - srcOffset,
+                    y * srcPieceHeight - srcOffset,
+                    srcPieceWidth + srcOffset * 2,
+                    srcPieceHeight + srcOffset * 2,
+                    0,
+                    0,
+                    piece.width,
+                    piece.height
+                );
                 ctx.stroke();
                 container.appendChild(piece);
                 makeDraggable(piece, container);
