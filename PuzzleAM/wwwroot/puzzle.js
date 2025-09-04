@@ -53,8 +53,31 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
         const srcOffsetX = offset / scaleX;
         const srcOffsetY = offset / scaleY;
 
-        container.style.width = scaledWidth + 'px';
-        container.style.height = scaledHeight + 'px';
+        // Make the container full screen so pieces can sit around the board
+        container.style.width = window.innerWidth + 'px';
+        container.style.height = window.innerHeight + 'px';
+
+        // Centre point for where the puzzle should be assembled
+        const boardLeft = (window.innerWidth - scaledWidth) / 2;
+        const boardTop = (window.innerHeight - scaledHeight) / 2;
+
+        const buffer = pieceSize; // leave one piece size around the puzzle
+        const centralRect = {
+            left: boardLeft - buffer,
+            top: boardTop - buffer,
+            right: boardLeft + scaledWidth + buffer,
+            bottom: boardTop + scaledHeight + buffer
+        };
+
+        const board = document.createElement('div');
+        board.classList.add('puzzle-board');
+        board.style.left = boardLeft + 'px';
+        board.style.top = boardTop + 'px';
+        board.style.width = scaledWidth + 'px';
+        board.style.height = scaledHeight + 'px';
+        container.appendChild(board);
+
+        const placedRects = [];
 
         const hTabs = Array.from({ length: rows }, () => Array(cols));
         const vTabs = Array.from({ length: rows }, () => Array(cols));
@@ -74,13 +97,37 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
                 piece.height = pieceHeight + offset * 2;
                 piece.classList.add('puzzle-piece');
 
-                // Randomize starting position to separate the pieces
-                piece.style.left = Math.random() * (scaledWidth - pieceWidth) + 'px';
-                piece.style.top = Math.random() * (scaledHeight - pieceHeight) + 'px';
+                // Find a random starting position around the edges without overlapping others
+                let startX, startY, attempts = 0;
+                do {
+                    attempts++;
+                    const side = ['top', 'bottom', 'left', 'right'][Math.floor(Math.random() * 4)];
+                    if (side === 'top') {
+                        startX = Math.random() * (window.innerWidth - piece.width);
+                        startY = Math.random() * (centralRect.top - piece.height);
+                    } else if (side === 'bottom') {
+                        startX = Math.random() * (window.innerWidth - piece.width);
+                        startY = centralRect.bottom + Math.random() * (window.innerHeight - centralRect.bottom - piece.height);
+                    } else if (side === 'left') {
+                        startX = Math.random() * (centralRect.left - piece.width);
+                        startY = Math.random() * (window.innerHeight - piece.height);
+                    } else { // right
+                        startX = centralRect.right + Math.random() * (window.innerWidth - centralRect.right - piece.width);
+                        startY = Math.random() * (window.innerHeight - piece.height);
+                    }
+                } while (
+                    placedRects.some(r => startX < r.x + r.width && startX + piece.width > r.x &&
+                        startY < r.y + r.height && startY + piece.height > r.y) && attempts < 1000
+                );
+
+                placedRects.push({ x: startX, y: startY, width: piece.width, height: piece.height });
+
+                piece.style.left = startX + 'px';
+                piece.style.top = startY + 'px';
 
                 // Store the correct coordinates for snapping
-                const correctX = x * pieceWidth - offset;
-                const correctY = y * pieceHeight - offset;
+                const correctX = boardLeft + x * pieceWidth - offset;
+                const correctY = boardTop + y * pieceHeight - offset;
                 piece.dataset.correctX = correctX;
                 piece.dataset.correctY = correctY;
                 piece.dataset.width = pieceWidth;

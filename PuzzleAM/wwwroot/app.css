@@ -85,6 +85,12 @@ h1:focus {
     background-color: transparent;
 }
 
+.puzzle-board {
+    position: absolute;
+    border: 2px dashed rgba(0, 0, 0, 0.3);
+    z-index: 0;
+}
+
 .puzzle-piece {
     position: absolute;
     cursor: grab;
