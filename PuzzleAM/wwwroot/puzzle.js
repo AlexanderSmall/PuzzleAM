@@ -45,6 +45,14 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
                 piece.style.left = Math.random() * (scaledWidth - pieceWidth) + 'px';
                 piece.style.top = Math.random() * (scaledHeight - pieceHeight) + 'px';
 
+                // Store the correct coordinates for snapping
+                const correctX = x * pieceWidth - offset;
+                const correctY = y * pieceHeight - offset;
+                piece.dataset.correctX = correctX;
+                piece.dataset.correctY = correctY;
+                piece.dataset.width = pieceWidth;
+                piece.dataset.height = pieceHeight;
+
                 const ctx = piece.getContext('2d');
                 drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, offset);
                 ctx.clip();
@@ -136,6 +144,7 @@ function makeDraggable(el, container) {
             document.removeEventListener('touchmove', onMove);
             document.removeEventListener('mouseup', stop);
             document.removeEventListener('touchend', stop);
+            snapPiece(el);
         };
 
         document.addEventListener('mousemove', onMove);
@@ -146,4 +155,17 @@ function makeDraggable(el, container) {
 
     el.addEventListener('mousedown', startDrag);
     el.addEventListener('touchstart', startDrag);
+}
+
+function snapPiece(el) {
+    const correctX = parseFloat(el.dataset.correctX);
+    const correctY = parseFloat(el.dataset.correctY);
+    const currentX = parseFloat(el.style.left);
+    const currentY = parseFloat(el.style.top);
+    const threshold = 15;
+
+    if (Math.abs(currentX - correctX) < threshold && Math.abs(currentY - correctY) < threshold) {
+        el.style.left = correctX + 'px';
+        el.style.top = correctY + 'px';
+    }
 }
