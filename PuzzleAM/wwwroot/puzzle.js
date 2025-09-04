@@ -1,9 +1,15 @@
 window.pieces = [];
 
 window.setBackgroundColor = function (color) {
+    if (document.body) {
+        document.body.style.backgroundColor = color;
+    }
+    if (document.documentElement) {
+        document.documentElement.style.backgroundColor = color;
+    }
     const container = document.getElementById('puzzleContainer');
     if (container) {
-        container.style.backgroundColor = color;
+        container.style.backgroundColor = 'transparent';
     }
 };
 

@@ -82,6 +82,7 @@ h1:focus {
 
 .puzzle-container {
     position: relative;
+    background-color: transparent;
 }
 
 .puzzle-piece {
