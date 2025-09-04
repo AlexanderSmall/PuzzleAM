@@ -16,29 +16,42 @@ window.setBackgroundColor = function (color) {
 window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
     const img = new Image();
     img.onload = function () {
-        let cols = Math.round(Math.sqrt(pieceCount));
-        while (pieceCount % cols !== 0) {
-            cols--;
+        // Determine a grid that keeps rows and columns as balanced as possible
+        let rows = Math.floor(Math.sqrt(pieceCount));
+        while (rows > 1 && pieceCount % rows !== 0) {
+            rows--;
         }
-        const rows = pieceCount / cols;
+        let cols;
+        if (rows > 1 && pieceCount % rows === 0) {
+            cols = pieceCount / rows;
+        } else {
+            // Fallback for prime counts – approximate a square grid
+            rows = Math.floor(Math.sqrt(pieceCount));
+            cols = Math.ceil(pieceCount / rows);
+        }
+
         const container = document.getElementById(containerId);
         container.classList.add('puzzle-container');
 
         // Clear any existing puzzle elements
         container.innerHTML = '';
 
-        // Scale the image so that it occupies 50% of the page width
+        // Constrain the puzzle to half the viewport in each dimension
         const targetWidth = window.innerWidth * 0.5;
-        const scale = targetWidth / img.width;
-        const scaledWidth = targetWidth;
-        const scaledHeight = img.height * scale;
+        const targetHeight = window.innerHeight * 0.5;
+        const pieceSize = Math.min(targetWidth / cols, targetHeight / rows);
+        const scaledWidth = pieceSize * cols;
+        const scaledHeight = pieceSize * rows;
+        const scaleX = scaledWidth / img.width;
+        const scaleY = scaledHeight / img.height;
 
-        const pieceWidth = scaledWidth / cols;
-        const pieceHeight = scaledHeight / rows;
+        const pieceWidth = pieceSize;
+        const pieceHeight = pieceSize;
         const srcPieceWidth = img.width / cols;
         const srcPieceHeight = img.height / rows;
-        const offset = Math.min(pieceWidth, pieceHeight) / 4;
-        const srcOffset = offset / scale;
+        const offset = pieceSize / 4;
+        const srcOffsetX = offset / scaleX;
+        const srcOffsetY = offset / scaleY;
 
         container.style.width = scaledWidth + 'px';
         container.style.height = scaledHeight + 'px';
@@ -79,10 +92,10 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
                 ctx.clip();
                 ctx.drawImage(
                     img,
-                    x * srcPieceWidth - srcOffset,
-                    y * srcPieceHeight - srcOffset,
-                    srcPieceWidth + srcOffset * 2,
-                    srcPieceHeight + srcOffset * 2,
+                    x * srcPieceWidth - srcOffsetX,
+                    y * srcPieceHeight - srcOffsetY,
+                    srcPieceWidth + srcOffsetX * 2,
+                    srcPieceHeight + srcOffsetY * 2,
                     0,
                     0,
                     piece.width,
