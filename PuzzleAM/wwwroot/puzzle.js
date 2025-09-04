@@ -99,7 +99,8 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
 };
 
 function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
-    const tab = Math.min(w, h) / 4;
+    const radius = Math.min(w, h) / 6;
+    const neck = radius / 2;
     ctx.beginPath();
     ctx.moveTo(offset, offset);
 
@@ -107,8 +108,15 @@ function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
     if (top === 0) {
         ctx.lineTo(offset + w, offset);
     } else {
-        ctx.lineTo(offset + w / 3, offset);
-        ctx.bezierCurveTo(offset + w / 6, offset - tab * top, offset + w * 5 / 6, offset - tab * top, offset + w * 2 / 3, offset);
+        const dir = top;
+        const centerX = offset + w / 2;
+        const startX = centerX - radius;
+        const endX = centerX + radius;
+        ctx.lineTo(startX, offset);
+        ctx.lineTo(startX, offset - neck * dir);
+        ctx.arc(centerX, offset - neck * dir, radius, Math.PI, 0, dir === -1);
+        ctx.lineTo(endX, offset - neck * dir);
+        ctx.lineTo(endX, offset);
         ctx.lineTo(offset + w, offset);
     }
 
@@ -116,8 +124,15 @@ function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
     if (right === 0) {
         ctx.lineTo(offset + w, offset + h);
     } else {
-        ctx.lineTo(offset + w, offset + h / 3);
-        ctx.bezierCurveTo(offset + w + tab * right, offset + h / 6, offset + w + tab * right, offset + h * 5 / 6, offset + w, offset + h * 2 / 3);
+        const dir = right;
+        const centerY = offset + h / 2;
+        const startY = centerY - radius;
+        const endY = centerY + radius;
+        ctx.lineTo(offset + w, startY);
+        ctx.lineTo(offset + w + neck * dir, startY);
+        ctx.arc(offset + w + neck * dir, centerY, radius, Math.PI / 2, -Math.PI / 2, dir === 1);
+        ctx.lineTo(offset + w + neck * dir, endY);
+        ctx.lineTo(offset + w, endY);
         ctx.lineTo(offset + w, offset + h);
     }
 
@@ -125,8 +140,15 @@ function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
     if (bottom === 0) {
         ctx.lineTo(offset, offset + h);
     } else {
-        ctx.lineTo(offset + w * 2 / 3, offset + h);
-        ctx.bezierCurveTo(offset + w * 5 / 6, offset + h + tab * bottom, offset + w / 6, offset + h + tab * bottom, offset + w / 3, offset + h);
+        const dir = bottom;
+        const centerX = offset + w / 2;
+        const startX = centerX + radius;
+        const endX = centerX - radius;
+        ctx.lineTo(startX, offset + h);
+        ctx.lineTo(startX, offset + h + neck * dir);
+        ctx.arc(centerX, offset + h + neck * dir, radius, 0, Math.PI, dir === -1);
+        ctx.lineTo(endX, offset + h + neck * dir);
+        ctx.lineTo(endX, offset + h);
         ctx.lineTo(offset, offset + h);
     }
 
@@ -134,8 +156,15 @@ function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
     if (left === 0) {
         ctx.lineTo(offset, offset);
     } else {
-        ctx.lineTo(offset, offset + h * 2 / 3);
-        ctx.bezierCurveTo(offset - tab * left, offset + h * 5 / 6, offset - tab * left, offset + h / 6, offset, offset + h / 3);
+        const dir = left;
+        const centerY = offset + h / 2;
+        const startY = centerY + radius;
+        const endY = centerY - radius;
+        ctx.lineTo(offset, startY);
+        ctx.lineTo(offset - neck * dir, startY);
+        ctx.arc(offset - neck * dir, centerY, radius, Math.PI / 2, -Math.PI / 2, dir === -1);
+        ctx.lineTo(offset - neck * dir, endY);
+        ctx.lineTo(offset, endY);
         ctx.lineTo(offset, offset);
     }
 
