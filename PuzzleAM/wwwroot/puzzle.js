@@ -1,5 +1,12 @@
 window.pieces = [];
 
+window.setBackgroundColor = function (color) {
+    const container = document.getElementById('puzzleContainer');
+    if (container) {
+        container.style.backgroundColor = color;
+    }
+};
+
 window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
     const img = new Image();
     img.onload = function () {

@@ -3,14 +3,22 @@
 
 <PageTitle>Puzzle Game</PageTitle>
 
-<select @bind="selectedPieces" class="form-select">
-    @foreach (var option in PieceOptions)
-    {
-        <option value="@option">@option</option>
-    }
-</select>
+<div class="d-flex align-items-center gap-2 mb-3">
+    <select @bind="selectedPieces" class="form-select w-auto">
+        @foreach (var option in PieceOptions)
+        {
+            <option value="@option">@option</option>
+        }
+    </select>
 
-<InputFile OnChange="OnInputFileChange" class="btn btn-primary" />
+    <InputFile OnChange="OnInputFileChange" class="btn btn-primary" />
+
+    <select @bind="selectedBackground" @bind:after="OnBackgroundChange" class="form-select w-auto">
+        <option value="#EFECE6">#EFECE6</option>
+        <option value="#E7F1DC">#E7F1DC</option>
+        <option value="#C8D2C5">#C8D2C5</option>
+    </select>
+</div>
 
 <div id="puzzleContainer"></div>
 

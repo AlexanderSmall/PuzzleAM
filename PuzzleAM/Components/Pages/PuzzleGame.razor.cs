@@ -10,6 +10,20 @@ public partial class PuzzleGame : ComponentBase
     [Inject] private IJSRuntime JS { get; set; } = default!;
     private int selectedPieces = 100;
     private static readonly int[] PieceOptions = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 };
+    private string selectedBackground = "#EFECE6";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
+        }
+    }
+
+    private async Task OnBackgroundChange()
+    {
+        await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
+    }
 
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
