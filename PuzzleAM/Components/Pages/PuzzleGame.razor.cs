@@ -8,6 +8,8 @@ public partial class PuzzleGame : ComponentBase
 {
     private string? imageDataUrl;
     [Inject] private IJSRuntime JS { get; set; } = default!;
+    private int selectedPieces = 100;
+    private static readonly int[] PieceOptions = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 };
 
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
@@ -16,7 +18,7 @@ public partial class PuzzleGame : ComponentBase
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);        // ensures the full file is read
         imageDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
-        await JS.InvokeVoidAsync("createPuzzle", imageDataUrl, "puzzleContainer");
+        await JS.InvokeVoidAsync("createPuzzle", imageDataUrl, "puzzleContainer", selectedPieces);
     }
 }
 
