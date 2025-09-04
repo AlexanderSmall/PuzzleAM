@@ -84,13 +84,6 @@ h1:focus {
     position: relative;
 }
 
-.puzzle-background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    pointer-events: none;
-}
-
 .puzzle-piece {
     position: absolute;
     cursor: grab;

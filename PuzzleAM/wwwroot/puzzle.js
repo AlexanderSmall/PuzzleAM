@@ -11,17 +11,8 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
         const container = document.getElementById(containerId);
         container.classList.add('puzzle-container');
 
-        // Remove any existing puzzle pieces but keep the background canvas
-        container.querySelectorAll('.puzzle-piece').forEach(p => p.remove());
-
-        // Ensure a background canvas exists
-        let background = container.querySelector('#backgroundCanvas');
-        if (!background) {
-            background = document.createElement('canvas');
-            background.id = 'backgroundCanvas';
-            background.classList.add('puzzle-background');
-            container.appendChild(background);
-        }
+        // Clear any existing puzzle elements
+        container.innerHTML = '';
 
         // Scale the image so that it occupies 50% of the page width
         const targetWidth = window.innerWidth * 0.5;
@@ -38,13 +29,6 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
 
         container.style.width = scaledWidth + 'px';
         container.style.height = scaledHeight + 'px';
-
-        // Draw the scaled image on the background canvas
-        background.width = scaledWidth;
-        background.height = scaledHeight;
-        const bgCtx = background.getContext('2d');
-        bgCtx.clearRect(0, 0, scaledWidth, scaledHeight);
-        bgCtx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
 
         const hTabs = Array.from({ length: rows }, () => Array(cols));
         const vTabs = Array.from({ length: rows }, () => Array(cols));
