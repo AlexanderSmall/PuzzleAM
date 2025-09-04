@@ -1,3 +1,5 @@
+window.pieces = [];
+
 window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
     const img = new Image();
     img.onload = function () {
@@ -29,6 +31,9 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
         const hTabs = Array.from({ length: rows }, () => Array(cols));
         const vTabs = Array.from({ length: rows }, () => Array(cols));
 
+        // reset pieces for new puzzle
+        window.pieces = [];
+
         for (let y = 0; y < rows; y++) {
             for (let x = 0; x < cols; x++) {
                 const top = y === 0 ? 0 : -vTabs[y - 1][x];
@@ -52,6 +57,7 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
                 piece.dataset.correctY = correctY;
                 piece.dataset.width = pieceWidth;
                 piece.dataset.height = pieceHeight;
+                piece.dataset.groupId = window.pieces.length;
 
                 const ctx = piece.getContext('2d');
                 drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, offset);
@@ -69,6 +75,7 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
                 );
                 ctx.stroke();
                 container.appendChild(piece);
+                window.pieces.push(piece);
                 makeDraggable(piece, container);
             }
         }
@@ -121,7 +128,7 @@ function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
 }
 
 function makeDraggable(el, container) {
-    let offsetX = 0, offsetY = 0;
+    let offsetX = 0, offsetY = 0, lastX = 0, lastY = 0;
 
     const startDrag = (event) => {
         event.preventDefault();
@@ -131,12 +138,25 @@ function makeDraggable(el, container) {
         const clientY = event.clientY ?? event.touches[0].clientY;
         offsetX = clientX - rect.left;
         offsetY = clientY - rect.top;
+        lastX = parseFloat(el.style.left);
+        lastY = parseFloat(el.style.top);
+        const groupId = el.dataset.groupId;
 
         const onMove = (e) => {
             const moveX = (e.clientX ?? e.touches[0].clientX) - containerRect.left - offsetX;
             const moveY = (e.clientY ?? e.touches[0].clientY) - containerRect.top - offsetY;
-            el.style.left = moveX + 'px';
-            el.style.top = moveY + 'px';
+            const dx = moveX - lastX;
+            const dy = moveY - lastY;
+
+            window.pieces.forEach(p => {
+                if (p.dataset.groupId === groupId) {
+                    p.style.left = (parseFloat(p.style.left) + dx) + 'px';
+                    p.style.top = (parseFloat(p.style.top) + dy) + 'px';
+                }
+            });
+
+            lastX = moveX;
+            lastY = moveY;
         };
 
         const stop = () => {
@@ -158,14 +178,61 @@ function makeDraggable(el, container) {
 }
 
 function snapPiece(el) {
+    const threshold = 15;
+    const groupId = el.dataset.groupId;
+    const groupPieces = window.pieces.filter(p => p.dataset.groupId === groupId);
+
     const correctX = parseFloat(el.dataset.correctX);
     const correctY = parseFloat(el.dataset.correctY);
     const currentX = parseFloat(el.style.left);
     const currentY = parseFloat(el.style.top);
-    const threshold = 15;
 
-    if (Math.abs(currentX - correctX) < threshold && Math.abs(currentY - correctY) < threshold) {
-        el.style.left = correctX + 'px';
-        el.style.top = correctY + 'px';
+    // Snap to correct location if close
+    const diffCorrectX = correctX - currentX;
+    const diffCorrectY = correctY - currentY;
+    if (Math.abs(diffCorrectX) < threshold && Math.abs(diffCorrectY) < threshold) {
+        groupPieces.forEach(p => {
+            p.style.left = (parseFloat(p.style.left) + diffCorrectX) + 'px';
+            p.style.top = (parseFloat(p.style.top) + diffCorrectY) + 'px';
+        });
+        checkCompletion();
+        return;
+    }
+
+    for (const neighbor of window.pieces) {
+        if (neighbor.dataset.groupId === groupId) continue;
+
+        const expectedDx = parseFloat(neighbor.dataset.correctX) - correctX;
+        const expectedDy = parseFloat(neighbor.dataset.correctY) - correctY;
+        const actualDx = parseFloat(neighbor.style.left) - currentX;
+        const actualDy = parseFloat(neighbor.style.top) - currentY;
+        const diffX = actualDx - expectedDx;
+        const diffY = actualDy - expectedDy;
+
+        if (Math.abs(diffX) < threshold && Math.abs(diffY) < threshold) {
+            groupPieces.forEach(p => {
+                p.style.left = (parseFloat(p.style.left) + diffX) + 'px';
+                p.style.top = (parseFloat(p.style.top) + diffY) + 'px';
+            });
+
+            const neighborGroupId = neighbor.dataset.groupId;
+            window.pieces.forEach(p => {
+                if (p.dataset.groupId === neighborGroupId) {
+                    p.dataset.groupId = groupId;
+                }
+            });
+
+            checkCompletion();
+            break;
+        }
+    }
+}
+
+function checkCompletion() {
+    if (window.pieces.length === 0) return;
+    const groupId = window.pieces[0].dataset.groupId;
+    const solved = window.pieces.every(p => p.dataset.groupId === groupId);
+    if (solved) {
+        console.log('Puzzle completed!');
     }
 }
