@@ -26,8 +26,11 @@ window.createPuzzle = function (imageDataUrl, containerId) {
                 piece.width = pieceWidth + offset * 2;
                 piece.height = pieceHeight + offset * 2;
                 piece.style.position = 'absolute';
-                piece.style.left = x * pieceWidth + 'px';
-                piece.style.top = y * pieceHeight + 'px';
+                piece.style.cursor = 'grab';
+
+                // Randomize starting position to separate the pieces
+                piece.style.left = Math.random() * (img.width - pieceWidth) + 'px';
+                piece.style.top = Math.random() * (img.height - pieceHeight) + 'px';
 
                 const ctx = piece.getContext('2d');
                 drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, offset);
@@ -35,6 +38,7 @@ window.createPuzzle = function (imageDataUrl, containerId) {
                 ctx.drawImage(img, offset - x * pieceWidth, offset - y * pieceHeight);
                 ctx.stroke();
                 container.appendChild(piece);
+                makeDraggable(piece, container);
             }
         }
     };
@@ -83,4 +87,40 @@ function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
     }
 
     ctx.closePath();
+}
+
+function makeDraggable(el, container) {
+    let offsetX = 0, offsetY = 0;
+
+    const startDrag = (event) => {
+        event.preventDefault();
+        const rect = el.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const clientX = event.clientX ?? event.touches[0].clientX;
+        const clientY = event.clientY ?? event.touches[0].clientY;
+        offsetX = clientX - rect.left;
+        offsetY = clientY - rect.top;
+
+        const onMove = (e) => {
+            const moveX = (e.clientX ?? e.touches[0].clientX) - containerRect.left - offsetX;
+            const moveY = (e.clientY ?? e.touches[0].clientY) - containerRect.top - offsetY;
+            el.style.left = moveX + 'px';
+            el.style.top = moveY + 'px';
+        };
+
+        const stop = () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('mouseup', stop);
+            document.removeEventListener('touchend', stop);
+        };
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('touchmove', onMove);
+        document.addEventListener('mouseup', stop);
+        document.addEventListener('touchend', stop);
+    };
+
+    el.addEventListener('mousedown', startDrag);
+    el.addEventListener('touchstart', startDrag);
 }
