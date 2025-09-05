@@ -1,4 +1,6 @@
 window.pieces = [];
+// Track the highest z-index so groups can be brought to the front
+window.maxZ = 1;
 let hubConnection;
 
 function startHubConnection() {
@@ -17,6 +19,7 @@ function startHubConnection() {
             if (data.groupId !== undefined) {
                 piece.dataset.groupId = data.groupId;
             }
+            updatePieceShadow(piece);
         }
     });
 
@@ -33,6 +36,7 @@ function startHubConnection() {
                 if (p.groupId !== undefined) {
                     piece.dataset.groupId = p.groupId;
                 }
+                updatePieceShadow(piece);
             }
         });
     });
@@ -142,6 +146,10 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
 
         const placedRects = [];
 
+        // expose puzzle dimensions for later neighbor checks
+        window.puzzleRows = rows;
+        window.puzzleCols = cols;
+
         const hTabs = Array.from({ length: rows }, () => Array(cols));
         const vTabs = Array.from({ length: rows }, () => Array(cols));
 
@@ -197,8 +205,12 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
                 piece.dataset.height = pieceHeight;
                 piece.dataset.groupId = window.pieces.length;
                 piece.dataset.pieceId = window.pieces.length;
+                piece.dataset.row = y;
+                piece.dataset.col = x;
 
                 const ctx = piece.getContext('2d');
+                ctx.clearRect(0, 0, piece.width, piece.height);
+                ctx.save();
                 drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, offset);
                 ctx.clip();
                 ctx.drawImage(
@@ -212,7 +224,7 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
                     piece.width,
                     piece.height
                 );
-                ctx.stroke();
+                ctx.restore();
                 container.appendChild(piece);
                 window.pieces.push(piece);
                 makeDraggable(piece, container);
@@ -295,6 +307,28 @@ function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
     ctx.closePath();
 }
 
+function setGroupLayer(groupPieces) {
+    window.maxZ += 1;
+    groupPieces.forEach(p => p.style.zIndex = window.maxZ);
+}
+
+function updatePieceShadow(piece) {
+    const groupId = parseInt(piece.dataset.groupId);
+    const row = parseInt(piece.dataset.row);
+    const col = parseInt(piece.dataset.col);
+    const neighbors = [];
+    if (row > 0) neighbors.push(window.pieces[(row - 1) * window.puzzleCols + col]);
+    if (row < window.puzzleRows - 1) neighbors.push(window.pieces[(row + 1) * window.puzzleCols + col]);
+    if (col > 0) neighbors.push(window.pieces[row * window.puzzleCols + (col - 1)]);
+    if (col < window.puzzleCols - 1) neighbors.push(window.pieces[row * window.puzzleCols + (col + 1)]);
+    const complete = neighbors.every(n => n && parseInt(n.dataset.groupId) === groupId);
+    piece.style.filter = complete ? 'none' : '';
+}
+
+function updateAllShadows() {
+    window.pieces.forEach(updatePieceShadow);
+}
+
 function makeDraggable(el, container) {
     let offsetX = 0, offsetY = 0, lastX = 0, lastY = 0;
 
@@ -308,8 +342,9 @@ function makeDraggable(el, container) {
         offsetY = clientY - rect.top;
         lastX = parseFloat(el.style.left);
         lastY = parseFloat(el.style.top);
-        const groupId = el.dataset.groupId;
-        const piecesToMove = window.pieces.filter(p => p.dataset.groupId === groupId);
+        const groupId = parseInt(el.dataset.groupId);
+        const piecesToMove = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
+        setGroupLayer(piecesToMove);
 
         const onMove = (e) => {
             const moveX = (e.clientX ?? e.touches[0].clientX) - containerRect.left - offsetX;
@@ -348,8 +383,8 @@ function makeDraggable(el, container) {
 
 function snapPiece(el) {
     const threshold = 15;
-    const groupId = el.dataset.groupId;
-    const groupPieces = window.pieces.filter(p => p.dataset.groupId === groupId);
+    const groupId = parseInt(el.dataset.groupId);
+    const groupPieces = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
 
     const correctX = parseFloat(el.dataset.correctX);
     const correctY = parseFloat(el.dataset.correctY);
@@ -368,6 +403,7 @@ function snapPiece(el) {
             p.style.top = (parseFloat(p.style.top) + diffCorrectY) + 'px';
             sendMove(p);
         });
+        updateAllShadows();
         checkCompletion();
         return;
     }
@@ -394,16 +430,18 @@ function snapPiece(el) {
                 sendMove(p);
             });
 
-            const neighborGroupId = neighbor.dataset.groupId;
+            const neighborGroupId = parseInt(neighbor.dataset.groupId);
             window.pieces.forEach(p => {
-                if (p.dataset.groupId === neighborGroupId) {
+                if (parseInt(p.dataset.groupId) === neighborGroupId) {
                     p.dataset.groupId = groupId;
                 }
             });
 
-            const finalGroup = window.pieces.filter(p => p.dataset.groupId === groupId);
+            const finalGroup = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
+            setGroupLayer(finalGroup);
             finalGroup.forEach(sendMove);
 
+            updateAllShadows();
             checkCompletion();
             break;
         }
