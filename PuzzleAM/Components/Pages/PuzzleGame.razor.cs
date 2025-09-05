@@ -1,60 +1,22 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using PuzzleAM.Model;
 
 namespace PuzzleAM.Components.Pages;
 
-public partial class PuzzleGame : ComponentBase, IAsyncDisposable
+public partial class PuzzleGame : ComponentBase
 {
     private string? imageDataUrl;
     [Inject] private IJSRuntime JS { get; set; } = default!;
-    [Inject] private NavigationManager Navigation { get; set; } = default!;
     [Inject] private ILogger<PuzzleGame> Logger { get; set; } = default!;
-    private HubConnection? hubConnection;
     private string? roomCode;
     private string? joinCode;
-    private string connectionStatus = "Disconnected";
     private int selectedPieces = 100;
     private static readonly int[] PieceOptions = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 };
     private string selectedBackground = "#EFECE6";
     private bool scriptLoaded;
-
-    private bool IsConnected => hubConnection?.State == HubConnectionState.Connected;
-
-    protected override async Task OnInitializedAsync()
-    {
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/puzzlehub"))
-            .WithAutomaticReconnect()
-            .Build();
-
-        hubConnection.Reconnecting += error =>
-        {
-            connectionStatus = "Reconnecting...";
-            InvokeAsync(StateHasChanged);
-            return Task.CompletedTask;
-        };
-
-        hubConnection.Reconnected += connectionId =>
-        {
-            connectionStatus = "Connected";
-            InvokeAsync(StateHasChanged);
-            return Task.CompletedTask;
-        };
-
-        hubConnection.Closed += error =>
-        {
-            connectionStatus = "Disconnected";
-            InvokeAsync(StateHasChanged);
-            return Task.CompletedTask;
-        };
-
-        await hubConnection.StartAsync();
-        connectionStatus = "Connected";
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -67,7 +29,6 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             }
             catch (Exception ex)
             {
-                connectionStatus = "Background color error";
                 Logger.LogError(ex, "Error applying background color");
             }
         }
@@ -83,7 +44,6 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             }
             catch (Exception ex)
             {
-                connectionStatus = "Background color error";
                 Logger.LogError(ex, "Error applying background color");
             }
         }
@@ -101,33 +61,20 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
 
     private async Task CreateRoom()
     {
-        if (hubConnection is null || string.IsNullOrEmpty(imageDataUrl)) return;
-        roomCode = await hubConnection.InvokeAsync<string>("CreateRoom", imageDataUrl, selectedPieces);
-        if (!string.IsNullOrEmpty(roomCode))
-        {
-            await JS.InvokeVoidAsync("setRoomCode", roomCode);
-        }
+        if (string.IsNullOrEmpty(imageDataUrl)) return;
+        roomCode = await JS.InvokeAsync<string?>("createRoom", imageDataUrl, selectedPieces);
     }
 
     private async Task JoinRoom()
     {
-        if (hubConnection is null || string.IsNullOrWhiteSpace(joinCode)) return;
-        var state = await hubConnection.InvokeAsync<PuzzleState?>("JoinRoom", joinCode);
+        if (string.IsNullOrWhiteSpace(joinCode)) return;
+        var state = await JS.InvokeAsync<PuzzleState?>("joinRoom", joinCode);
         if (state is not null && !string.IsNullOrEmpty(state.ImageDataUrl))
         {
             imageDataUrl = state.ImageDataUrl;
             selectedPieces = state.PieceCount;
             await JS.InvokeVoidAsync("createPuzzle", imageDataUrl, "puzzleContainer", selectedPieces);
             roomCode = joinCode;
-            await JS.InvokeVoidAsync("setRoomCode", roomCode);
-        }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (hubConnection is not null)
-        {
-            await hubConnection.DisposeAsync();
         }
     }
 
