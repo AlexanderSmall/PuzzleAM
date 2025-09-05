@@ -79,15 +79,20 @@ function sendMove(piece) {
 window.addEventListener("load", startHubConnection);
 
 window.setBackgroundColor = function (color) {
-    if (document.body) {
-        document.body.style.backgroundColor = color;
-    }
-    if (document.documentElement) {
-        document.documentElement.style.backgroundColor = color;
-    }
-    const container = document.getElementById('puzzleContainer');
-    if (container) {
-        container.style.backgroundColor = 'transparent';
+    try {
+        if (document.body) {
+            document.body.style.backgroundColor = color;
+        }
+        if (document.documentElement) {
+            document.documentElement.style.backgroundColor = color;
+        }
+        const container = document.getElementById('puzzleContainer');
+        if (container) {
+            container.style.backgroundColor = 'transparent';
+        }
+    } catch (error) {
+        console.error('Error applying background color', error);
+        throw error;
     }
 };
 
