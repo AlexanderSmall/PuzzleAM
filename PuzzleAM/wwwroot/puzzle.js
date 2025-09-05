@@ -2,6 +2,7 @@ window.pieces = [];
 // Track the highest z-index so groups can be brought to the front
 window.maxZ = 1;
 let hubConnection;
+let dotnetRef;
 
 // Play a short click when groups connect
 let audioCtx;
@@ -25,6 +26,7 @@ function playClickSound() {
 }
 
 function startHubConnection() {
+    if (hubConnection) return;
     hubConnection = new signalR.HubConnectionBuilder()
         .withUrl("/puzzleHub")
         .withAutomaticReconnect()
@@ -62,7 +64,22 @@ function startHubConnection() {
         });
     });
 
-    hubConnection.start().catch(err => console.error(err));
+    hubConnection.onreconnecting(() => {
+        if (dotnetRef) dotnetRef.invokeMethodAsync("UpdateConnectionStatus", "Reconnecting...");
+    });
+    hubConnection.onreconnected(() => {
+        if (dotnetRef) dotnetRef.invokeMethodAsync("UpdateConnectionStatus", "Connected");
+    });
+    hubConnection.onclose(() => {
+        if (dotnetRef) dotnetRef.invokeMethodAsync("UpdateConnectionStatus", "Disconnected");
+    });
+
+    hubConnection.start()
+        .then(() => { if (dotnetRef) dotnetRef.invokeMethodAsync("UpdateConnectionStatus", "Connected"); })
+        .catch(err => {
+            if (dotnetRef) dotnetRef.invokeMethodAsync("UpdateConnectionStatus", "Connection error");
+            console.error(err);
+        });
 }
 
 function sendMove(piece) {
@@ -76,7 +93,35 @@ function sendMove(piece) {
     }
 }
 
-window.addEventListener("load", startHubConnection);
+window.registerPuzzleGame = function (ref) {
+    dotnetRef = ref;
+    startHubConnection();
+};
+
+window.createRoom = async function () {
+    if (!hubConnection) throw new Error("Hub not connected");
+    return await hubConnection.invoke("CreateRoom");
+};
+
+window.joinRoom = async function (code) {
+    if (!hubConnection) throw new Error("Hub not connected");
+    const state = await hubConnection.invoke("JoinRoom", code);
+    if (state && state.imageDataUrl) {
+        await window.createPuzzle(state.imageDataUrl, "puzzleContainer", state.pieceCount);
+        (state.pieces || []).forEach(p => {
+            const piece = window.pieces[p.id];
+            if (piece) {
+                piece.style.left = p.left + "px";
+                piece.style.top = p.top + "px";
+                if (p.groupId !== undefined) {
+                    piece.dataset.groupId = p.groupId;
+                }
+                updatePieceShadow(piece);
+            }
+        });
+    }
+    return state;
+};
 
 window.setBackgroundColor = function (color) {
     try {
