@@ -1,4 +1,57 @@
 window.pieces = [];
+let hubConnection;
+
+function startHubConnection() {
+    hubConnection = new signalR.HubConnectionBuilder()
+        .withUrl("/puzzleHub")
+        .withAutomaticReconnect()
+        .build();
+
+    window.puzzleHub = hubConnection;
+
+    hubConnection.on("PieceMoved", data => {
+        const piece = window.pieces[data.id];
+        if (piece) {
+            piece.style.left = data.left + "px";
+            piece.style.top = data.top + "px";
+            if (data.groupId !== undefined) {
+                piece.dataset.groupId = data.groupId;
+            }
+        }
+    });
+
+    hubConnection.on("BoardState", state => {
+        if (state.imageDataUrl && window.pieces.length === 0) {
+            window.createPuzzle(state.imageDataUrl, "puzzleContainer", state.pieces.length);
+        }
+
+        (state.pieces || []).forEach(p => {
+            const piece = window.pieces[p.id];
+            if (piece) {
+                piece.style.left = p.left + "px";
+                piece.style.top = p.top + "px";
+                if (p.groupId !== undefined) {
+                    piece.dataset.groupId = p.groupId;
+                }
+            }
+        });
+    });
+
+    hubConnection.start().catch(err => console.error(err));
+}
+
+function sendMove(piece) {
+    if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
+        hubConnection.invoke("MovePiece", {
+            id: parseInt(piece.dataset.pieceId),
+            left: parseFloat(piece.style.left),
+            top: parseFloat(piece.style.top),
+            groupId: parseInt(piece.dataset.groupId)
+        }).catch(err => console.error(err));
+    }
+}
+
+window.addEventListener("load", startHubConnection);
 
 window.setBackgroundColor = function (color) {
     if (document.body) {
@@ -143,6 +196,7 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
                 piece.dataset.width = pieceWidth;
                 piece.dataset.height = pieceHeight;
                 piece.dataset.groupId = window.pieces.length;
+                piece.dataset.pieceId = window.pieces.length;
 
                 const ctx = piece.getContext('2d');
                 drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, offset);
@@ -255,6 +309,7 @@ function makeDraggable(el, container) {
         lastX = parseFloat(el.style.left);
         lastY = parseFloat(el.style.top);
         const groupId = el.dataset.groupId;
+        const piecesToMove = window.pieces.filter(p => p.dataset.groupId === groupId);
 
         const onMove = (e) => {
             const moveX = (e.clientX ?? e.touches[0].clientX) - containerRect.left - offsetX;
@@ -262,11 +317,10 @@ function makeDraggable(el, container) {
             const dx = moveX - lastX;
             const dy = moveY - lastY;
 
-            window.pieces.forEach(p => {
-                if (p.dataset.groupId === groupId) {
-                    p.style.left = (parseFloat(p.style.left) + dx) + 'px';
-                    p.style.top = (parseFloat(p.style.top) + dy) + 'px';
-                }
+            piecesToMove.forEach(p => {
+                p.style.left = (parseFloat(p.style.left) + dx) + 'px';
+                p.style.top = (parseFloat(p.style.top) + dy) + 'px';
+                sendMove(p);
             });
 
             lastX = moveX;
@@ -278,6 +332,7 @@ function makeDraggable(el, container) {
             document.removeEventListener('touchmove', onMove);
             document.removeEventListener('mouseup', stop);
             document.removeEventListener('touchend', stop);
+            piecesToMove.forEach(sendMove);
             snapPiece(el);
         };
 
@@ -311,6 +366,7 @@ function snapPiece(el) {
         groupPieces.forEach(p => {
             p.style.left = (parseFloat(p.style.left) + diffCorrectX) + 'px';
             p.style.top = (parseFloat(p.style.top) + diffCorrectY) + 'px';
+            sendMove(p);
         });
         checkCompletion();
         return;
@@ -335,6 +391,7 @@ function snapPiece(el) {
             groupPieces.forEach(p => {
                 p.style.left = (parseFloat(p.style.left) + diffX) + 'px';
                 p.style.top = (parseFloat(p.style.top) + diffY) + 'px';
+                sendMove(p);
             });
 
             const neighborGroupId = neighbor.dataset.groupId;
@@ -343,6 +400,9 @@ function snapPiece(el) {
                     p.dataset.groupId = groupId;
                 }
             });
+
+            const finalGroup = window.pieces.filter(p => p.dataset.groupId === groupId);
+            finalGroup.forEach(sendMove);
 
             checkCompletion();
             break;
