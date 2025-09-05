@@ -2,6 +2,7 @@ window.pieces = [];
 // Track the highest z-index so groups can be brought to the front
 window.maxZ = 1;
 let hubConnection;
+let currentRoomCode = null;
 
 // Play a short click when groups connect
 let audioCtx;
@@ -67,7 +68,7 @@ function startHubConnection() {
 
 function sendMove(piece) {
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
-        hubConnection.invoke("MovePiece", {
+        hubConnection.invoke("MovePiece", currentRoomCode, {
             id: parseInt(piece.dataset.pieceId),
             left: parseFloat(piece.style.left),
             top: parseFloat(piece.style.top),
@@ -77,6 +78,10 @@ function sendMove(piece) {
 }
 
 window.addEventListener("load", startHubConnection);
+
+window.setRoomCode = function (code) {
+    currentRoomCode = code;
+};
 
 window.setBackgroundColor = function (color) {
     try {
