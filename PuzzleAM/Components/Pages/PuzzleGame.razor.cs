@@ -56,13 +56,31 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     {
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
+            try
+            {
+                await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
+            }
+            catch (Exception ex)
+            {
+                connectionStatus = "Error setting background color";
+                Console.Error.WriteLine(ex);
+                await InvokeAsync(StateHasChanged);
+            }
         }
     }
 
     private async Task OnBackgroundChange()
     {
-        await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
+        try
+        {
+            await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
+        }
+        catch (Exception ex)
+        {
+            connectionStatus = "Error setting background color";
+            Console.Error.WriteLine(ex);
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
