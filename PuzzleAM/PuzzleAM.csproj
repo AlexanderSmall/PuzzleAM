@@ -10,6 +10,7 @@
     <ProjectReference Include="../PuzzleAM.Model/PuzzleAM.Model.csproj" />
     <ProjectReference Include="../PuzzleAM.View/PuzzleAM.View.csproj" />
     <ProjectReference Include="../PuzzleAM.ViewServices/PuzzleAM.ViewServices.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.7" />
   </ItemGroup>
 
   <ItemGroup>
