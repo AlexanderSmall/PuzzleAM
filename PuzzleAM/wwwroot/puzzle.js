@@ -83,6 +83,26 @@ window.setRoomCode = function (code) {
     currentRoomCode = code;
 };
 
+window.createRoom = async function (imageDataUrl, pieceCount) {
+    if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
+        const code = await hubConnection.invoke("CreateRoom", imageDataUrl, pieceCount);
+        window.setRoomCode(code);
+        return code;
+    }
+    return null;
+};
+
+window.joinRoom = async function (roomCode) {
+    if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
+        const state = await hubConnection.invoke("JoinRoom", roomCode);
+        if (state) {
+            window.setRoomCode(roomCode);
+        }
+        return state;
+    }
+    return null;
+};
+
 window.setBackgroundColor = function (color) {
     try {
         if (document.body) {
