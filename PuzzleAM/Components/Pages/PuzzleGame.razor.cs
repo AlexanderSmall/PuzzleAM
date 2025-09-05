@@ -17,6 +17,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     private int selectedPieces = 100;
     private static readonly int[] PieceOptions = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 };
     private string selectedBackground = "#EFECE6";
+    private bool scriptLoaded;
 
     private bool IsConnected => hubConnection?.State == HubConnectionState.Connected;
 
@@ -57,12 +58,16 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         if (firstRender)
         {
             await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
+            scriptLoaded = true;
         }
     }
 
     private async Task OnBackgroundChange()
     {
-        await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
+        if (scriptLoaded)
+        {
+            await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
+        }
     }
 
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
