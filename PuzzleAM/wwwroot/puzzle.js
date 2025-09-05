@@ -385,16 +385,13 @@ function snapPiece(el) {
     const threshold = 15;
     const groupId = parseInt(el.dataset.groupId);
     const groupPieces = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
+    const epsilon = 0.1;
 
+    // Snap to correct location if the dragged piece is close
     const correctX = parseFloat(el.dataset.correctX);
     const correctY = parseFloat(el.dataset.correctY);
     const currentX = parseFloat(el.style.left);
     const currentY = parseFloat(el.style.top);
-    const pieceWidth = parseFloat(el.dataset.width);
-    const pieceHeight = parseFloat(el.dataset.height);
-    const epsilon = 0.1;
-
-    // Snap to correct location if close
     const diffCorrectX = correctX - currentX;
     const diffCorrectY = correctY - currentY;
     if (Math.abs(diffCorrectX) < threshold && Math.abs(diffCorrectY) < threshold) {
@@ -408,42 +405,52 @@ function snapPiece(el) {
         return;
     }
 
-    for (const neighbor of window.pieces) {
-        if (neighbor.dataset.groupId === groupId) continue;
+    // Check all pieces in the group for connections to other groups
+    for (const piece of groupPieces) {
+        const pieceCorrectX = parseFloat(piece.dataset.correctX);
+        const pieceCorrectY = parseFloat(piece.dataset.correctY);
+        const pieceCurrentX = parseFloat(piece.style.left);
+        const pieceCurrentY = parseFloat(piece.style.top);
+        const pieceWidth = parseFloat(piece.dataset.width);
+        const pieceHeight = parseFloat(piece.dataset.height);
 
-        const expectedDx = parseFloat(neighbor.dataset.correctX) - correctX;
-        const expectedDy = parseFloat(neighbor.dataset.correctY) - correctY;
+        for (const neighbor of window.pieces) {
+            if (neighbor.dataset.groupId === groupId) continue;
 
-        const isHorizontalNeighbor = Math.abs(Math.abs(expectedDx) - pieceWidth) < epsilon && Math.abs(expectedDy) < epsilon;
-        const isVerticalNeighbor = Math.abs(Math.abs(expectedDy) - pieceHeight) < epsilon && Math.abs(expectedDx) < epsilon;
-        if (!isHorizontalNeighbor && !isVerticalNeighbor) continue;
+            const expectedDx = parseFloat(neighbor.dataset.correctX) - pieceCorrectX;
+            const expectedDy = parseFloat(neighbor.dataset.correctY) - pieceCorrectY;
 
-        const actualDx = parseFloat(neighbor.style.left) - currentX;
-        const actualDy = parseFloat(neighbor.style.top) - currentY;
-        const diffX = actualDx - expectedDx;
-        const diffY = actualDy - expectedDy;
+            const isHorizontalNeighbor = Math.abs(Math.abs(expectedDx) - pieceWidth) < epsilon && Math.abs(expectedDy) < epsilon;
+            const isVerticalNeighbor = Math.abs(Math.abs(expectedDy) - pieceHeight) < epsilon && Math.abs(expectedDx) < epsilon;
+            if (!isHorizontalNeighbor && !isVerticalNeighbor) continue;
 
-        if (Math.abs(diffX) < threshold && Math.abs(diffY) < threshold) {
-            groupPieces.forEach(p => {
-                p.style.left = (parseFloat(p.style.left) + diffX) + 'px';
-                p.style.top = (parseFloat(p.style.top) + diffY) + 'px';
-                sendMove(p);
-            });
+            const actualDx = parseFloat(neighbor.style.left) - pieceCurrentX;
+            const actualDy = parseFloat(neighbor.style.top) - pieceCurrentY;
+            const diffX = actualDx - expectedDx;
+            const diffY = actualDy - expectedDy;
 
-            const neighborGroupId = parseInt(neighbor.dataset.groupId);
-            window.pieces.forEach(p => {
-                if (parseInt(p.dataset.groupId) === neighborGroupId) {
-                    p.dataset.groupId = groupId;
-                }
-            });
+            if (Math.abs(diffX) < threshold && Math.abs(diffY) < threshold) {
+                groupPieces.forEach(p => {
+                    p.style.left = (parseFloat(p.style.left) + diffX) + 'px';
+                    p.style.top = (parseFloat(p.style.top) + diffY) + 'px';
+                    sendMove(p);
+                });
 
-            const finalGroup = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
-            setGroupLayer(finalGroup);
-            finalGroup.forEach(sendMove);
+                const neighborGroupId = parseInt(neighbor.dataset.groupId);
+                window.pieces.forEach(p => {
+                    if (parseInt(p.dataset.groupId) === neighborGroupId) {
+                        p.dataset.groupId = groupId;
+                    }
+                });
 
-            updateAllShadows();
-            checkCompletion();
-            break;
+                const finalGroup = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
+                setGroupLayer(finalGroup);
+                finalGroup.forEach(sendMove);
+
+                updateAllShadows();
+                checkCompletion();
+                return;
+            }
         }
     }
 }
