@@ -3,6 +3,27 @@ window.pieces = [];
 window.maxZ = 1;
 let hubConnection;
 
+// Play a short click when groups connect
+let audioCtx;
+function playClickSound() {
+    try {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.value = 800;
+        gain.gain.value = 0.1;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+    } catch (e) {
+        console.warn('Unable to play sound', e);
+    }
+}
+
 function startHubConnection() {
     hubConnection = new signalR.HubConnectionBuilder()
         .withUrl("/puzzleHub")
@@ -446,7 +467,7 @@ function snapPiece(el) {
                 const finalGroup = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
                 setGroupLayer(finalGroup);
                 finalGroup.forEach(sendMove);
-
+                playClickSound();
                 updateAllShadows();
                 checkCompletion();
                 return;
