@@ -1,4 +1,5 @@
 using PuzzleAM.Components;
+using PuzzleAM.Hubs;
 using PuzzleAM.ViewServices;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,6 +9,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddScoped<ModalService>();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -27,5 +29,6 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+app.MapHub<PuzzleHub>("/puzzlehub");
 
 app.Run();
