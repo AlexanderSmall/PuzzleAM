@@ -26,7 +26,7 @@ function playClickSound() {
 
 function startHubConnection() {
     hubConnection = new signalR.HubConnectionBuilder()
-        .withUrl("/puzzleHub")
+        .withUrl("/puzzlehub")
         .withAutomaticReconnect()
         .build();
 
