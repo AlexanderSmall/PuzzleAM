@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 
 namespace PuzzleAM.Hubs;
@@ -13,21 +14,57 @@ public record PiecePosition(int Id, float Left, float Top, int? GroupId);
 /// </summary>
 public class PuzzleState
 {
+    public string ImageDataUrl { get; set; } = string.Empty;
+    public int PieceCount { get; set; }
     public ConcurrentDictionary<int, PiecePosition> Pieces { get; } = new();
 }
 
 public class PuzzleHub : Hub
 {
-    // For the purposes of the sample a single global state is sufficient.
-    private static readonly PuzzleState State = new();
+    // Track the state for each room using the generated room code as the key
+    private static readonly ConcurrentDictionary<string, PuzzleState> Rooms = new();
+
+    private static readonly Random Random = new();
+
+    private static string GenerateRoomCode()
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        return new string(Enumerable.Range(0, 6).Select(_ => chars[Random.Next(chars.Length)]).ToArray());
+    }
+
+    public async Task<string> CreateRoom(string imageDataUrl, int pieceCount)
+    {
+        string code;
+        do
+        {
+            code = GenerateRoomCode();
+        } while (!Rooms.TryAdd(code, new PuzzleState { ImageDataUrl = imageDataUrl, PieceCount = pieceCount }));
+
+        await Groups.AddToGroupAsync(Context.ConnectionId, code);
+        return code;
+    }
+
+    public async Task<PuzzleState?> JoinRoom(string roomCode)
+    {
+        if (Rooms.TryGetValue(roomCode, out var state))
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
+            return state;
+        }
+
+        return null;
+    }
 
     /// <summary>
-    /// Persists the new position of a piece and broadcasts it to the
-    /// remaining connected clients.
+    /// Persists the new position of a piece and broadcasts it to clients in the
+    /// same room.
     /// </summary>
-    public async Task MovePiece(PiecePosition piece)
+    public async Task MovePiece(string roomCode, PiecePosition piece)
     {
-        State.Pieces[piece.Id] = piece;
-        await Clients.Others.SendAsync("PieceMoved", piece);
+        if (Rooms.TryGetValue(roomCode, out var state))
+        {
+            state.Pieces[piece.Id] = piece;
+            await Clients.OthersInGroup(roomCode).SendAsync("PieceMoved", piece);
+        }
     }
 }

@@ -100,8 +100,12 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
 
     private async Task CreateRoom()
     {
-        if (hubConnection is null) return;
-        roomCode = await hubConnection.InvokeAsync<string>("CreateRoom");
+        if (hubConnection is null || string.IsNullOrEmpty(imageDataUrl)) return;
+        roomCode = await hubConnection.InvokeAsync<string>("CreateRoom", imageDataUrl, selectedPieces);
+        if (!string.IsNullOrEmpty(roomCode))
+        {
+            await JS.InvokeVoidAsync("setRoomCode", roomCode);
+        }
     }
 
     private async Task JoinRoom()
@@ -114,6 +118,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             selectedPieces = state.PieceCount;
             await JS.InvokeVoidAsync("createPuzzle", imageDataUrl, "puzzleContainer", selectedPieces);
             roomCode = joinCode;
+            await JS.InvokeVoidAsync("setRoomCode", roomCode);
         }
     }
 
