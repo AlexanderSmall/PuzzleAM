@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.JSInterop;
 using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
+using PuzzleAM.Model;
 
 namespace PuzzleAM.Components.Pages;
 
@@ -124,7 +125,5 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             await hubConnection.DisposeAsync();
         }
     }
-
-    private record PuzzleState(string ImageDataUrl, int PieceCount);
 }
 
