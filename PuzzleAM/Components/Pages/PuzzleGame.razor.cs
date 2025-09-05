@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.JSInterop;
+using Microsoft.Extensions.Logging;
 
 namespace PuzzleAM.Components.Pages;
 
@@ -10,6 +11,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     private string? imageDataUrl;
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private NavigationManager Navigation { get; set; } = default!;
+    [Inject] private ILogger<PuzzleGame> Logger { get; set; } = default!;
     private HubConnection? hubConnection;
     private string? roomCode;
     private string? joinCode;
@@ -57,8 +59,16 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     {
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
-            scriptLoaded = true;
+            try
+            {
+                await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
+                scriptLoaded = true;
+            }
+            catch (Exception ex)
+            {
+                connectionStatus = "Background color error";
+                Logger.LogError(ex, "Error applying background color");
+            }
         }
     }
 
@@ -66,7 +76,15 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     {
         if (scriptLoaded)
         {
-            await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
+            try
+            {
+                await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
+            }
+            catch (Exception ex)
+            {
+                connectionStatus = "Background color error";
+                Logger.LogError(ex, "Error applying background color");
+            }
         }
     }
 
