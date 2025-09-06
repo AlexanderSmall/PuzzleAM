@@ -1,6 +1,9 @@
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     height: 100%;
+    /* Hide any overflow to prevent unwanted scrollbars while allowing
+       inner containers to show their shadows outside their bounds */
+    overflow: hidden;
 }
 
 body {
@@ -83,9 +86,8 @@ h1:focus {
 .puzzle-container {
     position: relative;
     background-color: transparent;
-    /* Prevent puzzle pieces or their shadows from overflowing and causing
-       scrollbars so the entire page fits within the viewport */
-    overflow: hidden;
+    /* Allow puzzle piece shadows to be visible outside the container */
+    overflow: visible;
 }
 
 .puzzle-board {
