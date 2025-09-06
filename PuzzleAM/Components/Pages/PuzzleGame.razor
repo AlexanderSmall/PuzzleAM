@@ -22,6 +22,7 @@
     @if (!string.IsNullOrEmpty(RoomCode))
     {
         <span>Room Code: @RoomCode</span>
+        <button class="btn btn-danger" @onclick="LeaveRoom">Leave Room</button>
     }
 </div>
 

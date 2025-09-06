@@ -52,6 +52,11 @@ public class PuzzleHub : Hub
         return null;
     }
 
+    public async Task LeaveRoom(string roomCode)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomCode);
+    }
+
     /// <summary>
     /// Persists the new position of a piece and broadcasts it to clients in the
     /// same room.

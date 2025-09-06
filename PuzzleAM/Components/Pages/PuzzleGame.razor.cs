@@ -11,6 +11,7 @@ public partial class PuzzleGame : ComponentBase
     private string? imageDataUrl;
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private ILogger<PuzzleGame> Logger { get; set; } = default!;
+    [Inject] private NavigationManager Nav { get; set; } = default!;
     [Parameter] public string? RoomCode { get; set; }
     private int selectedPieces = 100;
     private static readonly int[] PieceOptions = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 };
@@ -72,6 +73,24 @@ public partial class PuzzleGame : ComponentBase
         if (!string.IsNullOrEmpty(RoomCode))
         {
             await JS.InvokeVoidAsync("setPuzzle", RoomCode, imageDataUrl, selectedPieces);
+        }
+    }
+
+    private async Task LeaveRoom()
+    {
+        if (joined)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("leaveRoom");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error leaving room");
+            }
+
+            joined = false;
+            Nav.NavigateTo("/");
         }
     }
 }
