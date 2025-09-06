@@ -47,7 +47,7 @@ function startHubConnection() {
 
     hubConnection.on("BoardState", state => {
         if (state.imageDataUrl && window.pieces.length === 0) {
-            window.createPuzzle(state.imageDataUrl, "puzzleContainer", state.pieces.length);
+            window.createPuzzle(state.imageDataUrl, "puzzleContainer", state.pieceCount);
         }
 
         (state.pieces || []).forEach(p => {
