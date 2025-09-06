@@ -172,8 +172,10 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         const availableWidth = window.innerWidth - containerRect.left;
         const availableHeight = window.innerHeight - containerRect.top;
 
-        const targetWidth = availableWidth * 0.5;
-        const targetHeight = availableHeight * 0.5;
+        const widthFactor = window.innerWidth <= 768 ? 0.9 : 0.5;
+        const heightFactor = window.innerWidth <= 768 ? 0.6 : 0.5;
+        const targetWidth = availableWidth * widthFactor;
+        const targetHeight = availableHeight * heightFactor;
         const pieceSize = Math.min(targetWidth / cols, targetHeight / rows);
         const scaledWidth = pieceSize * cols;
         const scaledHeight = pieceSize * rows;
