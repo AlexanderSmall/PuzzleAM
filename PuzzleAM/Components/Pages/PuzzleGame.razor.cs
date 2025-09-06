@@ -36,7 +36,6 @@ public partial class PuzzleGame : ComponentBase
                     {
                         imageDataUrl = state.ImageDataUrl;
                         selectedPieces = state.PieceCount;
-                        await JS.InvokeVoidAsync("createPuzzle", imageDataUrl, "puzzleContainer", selectedPieces);
                     }
                     joined = true;
                 }
@@ -70,7 +69,6 @@ public partial class PuzzleGame : ComponentBase
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);        // ensures the full file is read
         imageDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
-        await JS.InvokeVoidAsync("createPuzzle", imageDataUrl, "puzzleContainer", selectedPieces);
         if (!string.IsNullOrEmpty(RoomCode))
         {
             await JS.InvokeVoidAsync("setPuzzle", RoomCode, imageDataUrl, selectedPieces);
