@@ -155,7 +155,7 @@ public class PuzzleHub : Hub
         if (Rooms.TryGetValue(roomCode, out var state))
         {
             state.Pieces[piece.Id] = piece;
-            await Clients.OthersInGroup(roomCode).SendAsync("PieceMoved", piece);
+            await Clients.Group(roomCode).SendAsync("PieceMoved", piece);
         }
     }
 }
