@@ -307,6 +307,7 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
                 makeDraggable(piece, container);
             }
         }
+        updateAllShadows();
         playStartSound();
     };
     img.src = imageDataUrl;
@@ -394,13 +395,20 @@ function updatePieceShadow(piece) {
     const groupId = parseInt(piece.dataset.groupId);
     const row = parseInt(piece.dataset.row);
     const col = parseInt(piece.dataset.col);
-    const neighbors = [];
-    if (row > 0) neighbors.push(window.pieces[(row - 1) * window.puzzleCols + col]);
-    if (row < window.puzzleRows - 1) neighbors.push(window.pieces[(row + 1) * window.puzzleCols + col]);
-    if (col > 0) neighbors.push(window.pieces[row * window.puzzleCols + (col - 1)]);
-    if (col < window.puzzleCols - 1) neighbors.push(window.pieces[row * window.puzzleCols + (col + 1)]);
-    const complete = neighbors.every(n => n && parseInt(n.dataset.groupId) === groupId);
-    piece.style.filter = complete ? 'none' : '';
+
+    const shadows = [];
+
+    const bottomNeighbor = row < window.puzzleRows - 1 ? window.pieces[(row + 1) * window.puzzleCols + col] : null;
+    if (!(bottomNeighbor && parseInt(bottomNeighbor.dataset.groupId) === groupId)) {
+        shadows.push('drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5))');
+    }
+
+    const rightNeighbor = col < window.puzzleCols - 1 ? window.pieces[row * window.puzzleCols + (col + 1)] : null;
+    if (!(rightNeighbor && parseInt(rightNeighbor.dataset.groupId) === groupId)) {
+        shadows.push('drop-shadow(3px 0 6px rgba(0, 0, 0, 0.5))');
+    }
+
+    piece.style.filter = shadows.length ? shadows.join(' ') : 'none';
 }
 
 function updateAllShadows() {
