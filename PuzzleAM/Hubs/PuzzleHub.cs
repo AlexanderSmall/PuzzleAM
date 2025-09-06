@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 using PuzzleAM.Model;
+using SixLabors.ImageSharp;
 
 namespace PuzzleAM.Hubs;
 
@@ -39,33 +40,64 @@ public class PuzzleHub : Hub
             state.PieceCount = pieceCount;
             state.Pieces.Clear();
 
-            // Determine a grid layout that evenly divides the pieces across rows
-            // and columns. This mirrors the logic used on the client so that the
-            // puzzle pieces are shaped consistently across all players.
-            var rows = (int)Math.Floor(Math.Sqrt(pieceCount));
-            while (rows > 1 && pieceCount % rows != 0)
+            double aspect = 1;
+            try
             {
-                rows--;
+                var commaIndex = imageDataUrl.IndexOf(',');
+                var base64 = commaIndex >= 0 ? imageDataUrl[(commaIndex + 1)..] : imageDataUrl;
+                var imageBytes = Convert.FromBase64String(base64);
+                using var image = Image.Load(imageBytes);
+                aspect = (double)image.Width / image.Height;
+            }
+            catch
+            {
+                aspect = 1;
             }
 
-            int cols;
-            if (rows > 1 && pieceCount % rows == 0)
+            int bestRows = 1;
+            int bestCols = pieceCount;
+            double bestDiff = double.MaxValue;
+            for (int r = 1; r <= Math.Sqrt(pieceCount); r++)
             {
-                cols = pieceCount / rows;
-            }
-            else
-            {
-                rows = (int)Math.Floor(Math.Sqrt(pieceCount));
-                cols = (int)Math.Ceiling(pieceCount / (double)rows);
+                if (pieceCount % r == 0)
+                {
+                    int c = pieceCount / r;
+                    bool orientationOk = aspect >= 1 ? c >= r : r >= c;
+                    double diff = Math.Abs((double)c / r - aspect);
+                    if (orientationOk && diff < bestDiff)
+                    {
+                        bestDiff = diff;
+                        bestRows = r;
+                        bestCols = c;
+                    }
+                }
             }
 
-            state.Rows = rows;
-            state.Columns = cols;
+            if (bestDiff == double.MaxValue)
+            {
+                for (int r = 1; r <= Math.Sqrt(pieceCount); r++)
+                {
+                    if (pieceCount % r == 0)
+                    {
+                        int c = pieceCount / r;
+                        double diff = Math.Abs((double)c / r - aspect);
+                        if (diff < bestDiff)
+                        {
+                            bestDiff = diff;
+                            bestRows = r;
+                            bestCols = c;
+                        }
+                    }
+                }
+            }
+
+            state.Rows = bestRows;
+            state.Columns = bestCols;
             state.BoardWidth = 1f;
             state.BoardHeight = 1f;
 
-            var pieceWidth = 1.0 / cols;
-            var pieceHeight = 1.0 / rows;
+            var pieceWidth = 1.0 / state.Columns;
+            var pieceHeight = 1.0 / state.Rows;
             var buffer = Math.Max(pieceWidth, pieceHeight);
 
             var placedRects = new List<(double x, double y, double w, double h)>();
