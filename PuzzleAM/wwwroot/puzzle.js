@@ -109,6 +109,13 @@ window.joinRoom = async function (roomCode) {
     return null;
 };
 
+window.leaveRoom = async function () {
+    if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected && currentRoomCode) {
+        await hubConnection.invoke("LeaveRoom", currentRoomCode);
+        currentRoomCode = null;
+    }
+};
+
 window.setBackgroundColor = function (color) {
     try {
         if (document.body) {
