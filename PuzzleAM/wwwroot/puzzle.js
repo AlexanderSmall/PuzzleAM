@@ -3,6 +3,7 @@ window.pieces = [];
 window.maxZ = 1;
 let hubConnection;
 let currentRoomCode = null;
+const locallyMovedPieces = new Set();
 
 // Load audio assets for various game events
 const sounds = {
@@ -47,6 +48,10 @@ function startHubConnection() {
     window.puzzleHub = hubConnection;
 
     hubConnection.on("PieceMoved", data => {
+        if (locallyMovedPieces.has(data.id)) {
+            return;
+        }
+
         const piece = window.pieces[data.id];
         if (piece) {
             if (typeof window.boardLeft === 'number' && typeof window.boardWidth === 'number') {
@@ -380,6 +385,10 @@ function makeDraggable(el, container) {
         const piecesToMove = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
         setGroupLayer(piecesToMove);
 
+        piecesToMove.forEach(p => {
+            locallyMovedPieces.add(parseInt(p.dataset.pieceId));
+        });
+
         const onMove = (e) => {
             const moveX = (e.clientX ?? e.touches[0].clientX) - containerRect.left - offsetX;
             const moveY = (e.clientY ?? e.touches[0].clientY) - containerRect.top - offsetY;
@@ -402,6 +411,9 @@ function makeDraggable(el, container) {
             document.removeEventListener('mouseup', stop);
             document.removeEventListener('touchend', stop);
             piecesToMove.forEach(sendMove);
+            piecesToMove.forEach(p => {
+                locallyMovedPieces.delete(parseInt(p.dataset.pieceId));
+            });
             snapPiece(el);
         };
 
