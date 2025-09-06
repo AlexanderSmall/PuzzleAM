@@ -20,6 +20,15 @@ public class PuzzleHub : Hub
         return new string(Enumerable.Range(0, 6).Select(_ => chars[Random.Next(chars.Length)]).ToArray());
     }
 
+    private static string GetUserName(HubCallerContext context)
+    {
+        if (context.User?.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(context.User.Identity.Name))
+        {
+            return context.User.Identity.Name!;
+        }
+        return $"Guest{Random.Next(1000, 9999)}";
+    }
+
     public async Task<string> CreateRoom(string imageDataUrl = "", int pieceCount = 0)
     {
         string code;
@@ -29,6 +38,9 @@ public class PuzzleHub : Hub
         } while (!Rooms.TryAdd(code, new PuzzleState { ImageDataUrl = imageDataUrl, PieceCount = pieceCount }));
 
         await Groups.AddToGroupAsync(Context.ConnectionId, code);
+        var userName = GetUserName(Context);
+        Rooms[code].Users[Context.ConnectionId] = userName;
+        await Clients.Group(code).SendAsync("UserList", Rooms[code].Users.Values);
         return code;
     }
 
@@ -161,6 +173,9 @@ public class PuzzleHub : Hub
         if (Rooms.TryGetValue(roomCode, out var state))
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
+            var userName = GetUserName(Context);
+            state.Users[Context.ConnectionId] = userName;
+            await Clients.Group(roomCode).SendAsync("UserList", state.Users.Values);
             await Clients.Caller.SendAsync("BoardState", new
             {
                 imageDataUrl = state.ImageDataUrl,
@@ -180,6 +195,11 @@ public class PuzzleHub : Hub
     public async Task LeaveRoom(string roomCode)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomCode);
+        if (Rooms.TryGetValue(roomCode, out var state))
+        {
+            state.Users.TryRemove(Context.ConnectionId, out _);
+            await Clients.Group(roomCode).SendAsync("UserList", state.Users.Values);
+        }
     }
 
     /// <summary>
@@ -193,5 +213,18 @@ public class PuzzleHub : Hub
             state.Pieces[piece.Id] = piece;
             await Clients.Group(roomCode).SendAsync("PieceMoved", piece);
         }
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        foreach (var kvp in Rooms)
+        {
+            if (kvp.Value.Users.TryRemove(Context.ConnectionId, out _))
+            {
+                await Clients.Group(kvp.Key).SendAsync("UserList", kvp.Value.Users.Values);
+                break;
+            }
+        }
+        await base.OnDisconnectedAsync(exception);
     }
 }

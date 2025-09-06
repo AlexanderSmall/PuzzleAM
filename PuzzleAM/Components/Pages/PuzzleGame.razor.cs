@@ -6,7 +6,7 @@ using PuzzleAM.Model;
 
 namespace PuzzleAM.Components.Pages;
 
-public partial class PuzzleGame : ComponentBase
+public partial class PuzzleGame : ComponentBase, IAsyncDisposable
 {
     private string? imageDataUrl;
     [Inject] private IJSRuntime JS { get; set; } = default!;
@@ -19,6 +19,8 @@ public partial class PuzzleGame : ComponentBase
     private bool scriptLoaded;
     private bool joined;
     private bool settingsVisible = true;
+    private List<string> users = new();
+    private DotNetObjectReference<PuzzleGame>? objRef;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -27,6 +29,8 @@ public partial class PuzzleGame : ComponentBase
             try
             {
                 await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
+                objRef = DotNetObjectReference.Create(this);
+                await JS.InvokeVoidAsync("registerUserListHandler", objRef);
                 scriptLoaded = true;
 
                 if (!joined && !string.IsNullOrEmpty(RoomCode))
@@ -111,5 +115,19 @@ public partial class PuzzleGame : ComponentBase
     private void ToggleSettings()
     {
         settingsVisible = !settingsVisible;
+    }
+
+    [JSInvokable]
+    public Task ReceiveUserList(string[] names)
+    {
+        users = names.ToList();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        objRef?.Dispose();
+        await Task.CompletedTask;
     }
 }

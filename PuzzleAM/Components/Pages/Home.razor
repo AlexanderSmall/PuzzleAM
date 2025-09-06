@@ -3,6 +3,14 @@
 @using PuzzleAM.Model
 @inject IJSRuntime JS
 @inject NavigationManager Nav
+@inject HttpClient Http
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Net.Http.Json
+
+<div class="position-absolute top-0 end-0 p-3">
+    <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#registerModal">Create Account</button>
+    <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#loginModal">Login</button>
+</div>
 
 <h1 class="text-center fw-bold mt-5">Puzzle AM</h1>
 <div class="d-flex flex-column align-items-center justify-content-center" style="height:70vh;">
@@ -17,9 +25,58 @@
     }
 </div>
 
+<div class="modal fade" id="registerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <InputText @bind-Value="registerModel.Username" class="form-control" placeholder="Username" />
+                <InputText @bind-Value="registerModel.Password" type="password" class="form-control mt-2" placeholder="Password" />
+                <InputText @bind-Value="registerModel.ConfirmPassword" type="password" class="form-control mt-2" placeholder="Confirm Password" />
+                @if (!string.IsNullOrEmpty(registerError))
+                {
+                    <div class="text-danger mt-2">@registerError</div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" @onclick="Register">Create Account</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="loginModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Login</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <InputText @bind-Value="loginModel.Username" class="form-control" placeholder="Username" />
+                <InputText @bind-Value="loginModel.Password" type="password" class="form-control mt-2" placeholder="Password" />
+                @if (!string.IsNullOrEmpty(loginError))
+                {
+                    <div class="text-danger mt-2">@loginError</div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" @onclick="Login">Login</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @code {
     private string? joinCode;
     private string? errorMessage;
+    private RegisterModel registerModel = new();
+    private LoginModel loginModel = new();
+    private string? registerError;
+    private string? loginError;
 
     private async Task CreateRoom()
     {
@@ -39,5 +96,49 @@
         {
             errorMessage = "Room code does not exist";
         }
+    }
+
+    private async Task Register()
+    {
+        if (registerModel.Password != registerModel.ConfirmPassword)
+        {
+            registerError = "Passwords do not match";
+            return;
+        }
+        var response = await Http.PostAsJsonAsync("/register", registerModel);
+        if (response.IsSuccessStatusCode)
+        {
+            registerError = null;
+        }
+        else
+        {
+            registerError = "Registration failed";
+        }
+    }
+
+    private async Task Login()
+    {
+        var response = await Http.PostAsJsonAsync("/login", loginModel);
+        if (response.IsSuccessStatusCode)
+        {
+            loginError = null;
+        }
+        else
+        {
+            loginError = "Login failed";
+        }
+    }
+
+    public class RegisterModel
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    public class LoginModel
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
     }
 }

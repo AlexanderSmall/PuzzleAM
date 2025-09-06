@@ -12,6 +12,11 @@ const sounds = {
     applause: new Audio('/audio/Applause.wav')
 };
 
+let userListHandler;
+window.registerUserListHandler = function (dotNetHelper) {
+    userListHandler = dotNetHelper;
+};
+
 function playStartSound() {
     try {
         sounds.start.currentTime = 0;
@@ -84,6 +89,12 @@ function startHubConnection() {
     hubConnection.on("BoardState", state => {
         if (state.imageDataUrl) {
             window.createPuzzle(state.imageDataUrl, "puzzleContainer", state);
+        }
+    });
+
+    hubConnection.on("UserList", users => {
+        if (userListHandler) {
+            userListHandler.invokeMethodAsync("ReceiveUserList", users);
         }
     });
 
