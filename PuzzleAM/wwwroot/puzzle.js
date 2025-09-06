@@ -107,7 +107,12 @@ window.createRoom = async function (imageDataUrl, pieceCount) {
 
 window.setPuzzle = async function (roomCode, imageDataUrl, pieceCount) {
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
-        await hubConnection.invoke("SetPuzzle", roomCode, imageDataUrl, pieceCount);
+        try {
+            await hubConnection.invoke("SetPuzzle", roomCode, imageDataUrl, pieceCount);
+        } catch (error) {
+            console.error('Error setting puzzle', error);
+            alert('Failed to set puzzle. Please try again.');
+        }
     }
 };
 
