@@ -65,6 +65,19 @@ function startHubConnection() {
                 piece.dataset.groupId = data.groupId;
             }
             updatePieceShadow(piece);
+
+            const row = parseInt(piece.dataset.row);
+            const col = parseInt(piece.dataset.col);
+
+            const topNeighbor = row > 0 ? window.pieces[(row - 1) * window.puzzleCols + col] : null;
+            if (topNeighbor) {
+                updatePieceShadow(topNeighbor);
+            }
+
+            const leftNeighbor = col > 0 ? window.pieces[row * window.puzzleCols + (col - 1)] : null;
+            if (leftNeighbor) {
+                updatePieceShadow(leftNeighbor);
+            }
         }
     });
 
