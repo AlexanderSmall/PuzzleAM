@@ -37,7 +37,12 @@ public class PuzzleHub : Hub
             state.ImageDataUrl = imageDataUrl;
             state.PieceCount = pieceCount;
             state.Pieces.Clear();
-            await Clients.Group(roomCode).SendAsync("BoardState", state);
+            await Clients.Group(roomCode).SendAsync("BoardState", new
+            {
+                imageDataUrl = state.ImageDataUrl,
+                pieceCount = state.PieceCount,
+                pieces = state.Pieces.Values
+            });
         }
     }
 
