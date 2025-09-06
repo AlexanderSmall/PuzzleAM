@@ -99,3 +99,28 @@ h1:focus {
     cursor: grab;
     z-index: 1;
 }
+
+.settings-panel {
+    background-color: #ffffff;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.load-icon {
+    cursor: pointer;
+    font-size: 1.25rem;
+}
+
+.color-select {
+    width: 3rem;
+    padding: 0.2rem;
+}
+
+.color-select option {
+    color: transparent;
+}
+
+.puzzle-icon {
+    font-size: 1.25rem;
+}

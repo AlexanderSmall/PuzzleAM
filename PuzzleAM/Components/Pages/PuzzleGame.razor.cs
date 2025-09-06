@@ -76,6 +76,21 @@ public partial class PuzzleGame : ComponentBase
         }
     }
 
+    private async Task CopyRoomCode()
+    {
+        if (!string.IsNullOrEmpty(RoomCode))
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("navigator.clipboard.writeText", RoomCode);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error copying room code");
+            }
+        }
+    }
+
     private async Task LeaveRoom()
     {
         if (joined)
