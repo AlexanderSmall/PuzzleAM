@@ -61,7 +61,7 @@ function startHubConnection() {
                 piece.style.left = data.left + "px";
                 piece.style.top = data.top + "px";
             }
-            if (data.groupId !== undefined) {
+            if (data.groupId != null) {
                 piece.dataset.groupId = data.groupId;
             }
             updatePieceShadow(piece);
@@ -80,12 +80,16 @@ function startHubConnection() {
 function sendMove(piece) {
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected &&
         typeof window.boardLeft === 'number' && typeof window.boardWidth === 'number') {
-        hubConnection.invoke("MovePiece", currentRoomCode, {
+        const payload = {
             id: parseInt(piece.dataset.pieceId),
             left: (parseFloat(piece.style.left) - window.boardLeft) / window.boardWidth,
-            top: (parseFloat(piece.style.top) - window.boardTop) / window.boardHeight,
-            groupId: parseInt(piece.dataset.groupId)
-        }).catch(err => console.error(err));
+            top: (parseFloat(piece.style.top) - window.boardTop) / window.boardHeight
+        };
+        const groupId = parseInt(piece.dataset.groupId);
+        if (Number.isFinite(groupId)) {
+            payload.groupId = groupId;
+        }
+        hubConnection.invoke("MovePiece", currentRoomCode, payload).catch(err => console.error(err));
     }
 }
 
