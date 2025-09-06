@@ -395,6 +395,24 @@ function updateAllShadows() {
     window.pieces.forEach(updatePieceShadow);
 }
 
+function updateShadowsForPieces(pieces) {
+    const toUpdate = new Set();
+    pieces.forEach(p => {
+        toUpdate.add(p);
+        const row = parseInt(p.dataset.row);
+        const col = parseInt(p.dataset.col);
+        const topNeighbor = row > 0 ? window.pieces[(row - 1) * window.puzzleCols + col] : null;
+        if (topNeighbor) {
+            toUpdate.add(topNeighbor);
+        }
+        const leftNeighbor = col > 0 ? window.pieces[row * window.puzzleCols + (col - 1)] : null;
+        if (leftNeighbor) {
+            toUpdate.add(leftNeighbor);
+        }
+    });
+    toUpdate.forEach(updatePieceShadow);
+}
+
 function makeDraggable(el, container) {
     let offsetX = 0, offsetY = 0, lastX = 0, lastY = 0;
 
@@ -474,7 +492,7 @@ function snapPiece(el) {
             p.style.top = (parseFloat(p.style.top) + diffCorrectY) + 'px';
             sendMove(p);
         });
-        updateAllShadows();
+        updateShadowsForPieces(groupPieces);
         checkCompletion();
         return;
     }
@@ -522,14 +540,14 @@ function snapPiece(el) {
                 setGroupLayer(finalGroup);
                 finalGroup.forEach(sendMove);
                 playConnectSound();
-                updateAllShadows();
+                updateShadowsForPieces(finalGroup);
                 checkCompletion();
                 return;
             }
         }
     }
 
-    updateAllShadows();
+    updateShadowsForPieces(groupPieces);
     checkCompletion();
 }
 
