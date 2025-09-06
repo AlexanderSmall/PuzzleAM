@@ -51,6 +51,12 @@ public class PuzzleHub : Hub
         if (Rooms.TryGetValue(roomCode, out var state))
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
+            await Clients.Caller.SendAsync("BoardState", new
+            {
+                imageDataUrl = state.ImageDataUrl,
+                pieceCount = state.PieceCount,
+                pieces = state.Pieces.Values
+            });
             return state;
         }
 
