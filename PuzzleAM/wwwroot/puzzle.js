@@ -465,6 +465,7 @@ function snapPiece(el) {
     const groupPieces = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
     const epsilon = 0.1;
 
+    /*
     // Snap to correct location if the dragged piece is close
     const correctX = parseFloat(el.dataset.correctX);
     const correctY = parseFloat(el.dataset.correctY);
@@ -482,6 +483,7 @@ function snapPiece(el) {
         checkCompletion();
         return;
     }
+    */
 
     // Check all pieces in the group for connections to other groups
     for (const piece of groupPieces) {
@@ -531,6 +533,9 @@ function snapPiece(el) {
             }
         }
     }
+
+    updateAllShadows();
+    checkCompletion();
 }
 
 function checkCompletion() {
