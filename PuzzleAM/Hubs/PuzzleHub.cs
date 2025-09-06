@@ -18,7 +18,7 @@ public class PuzzleHub : Hub
         return new string(Enumerable.Range(0, 6).Select(_ => chars[Random.Next(chars.Length)]).ToArray());
     }
 
-    public async Task<string> CreateRoom(string imageDataUrl, int pieceCount)
+    public async Task<string> CreateRoom(string imageDataUrl = "", int pieceCount = 0)
     {
         string code;
         do
@@ -29,8 +29,6 @@ public class PuzzleHub : Hub
         await Groups.AddToGroupAsync(Context.ConnectionId, code);
         return code;
     }
-
-    public Task<string> CreateRoom() => CreateRoom(string.Empty, 0);
 
     public async Task SetPuzzle(string roomCode, string imageDataUrl, int pieceCount)
     {
