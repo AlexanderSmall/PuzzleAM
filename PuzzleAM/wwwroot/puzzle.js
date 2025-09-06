@@ -4,24 +4,37 @@ window.maxZ = 1;
 let hubConnection;
 let currentRoomCode = null;
 
-// Play a short click when groups connect
-let audioCtx;
-function playClickSound() {
+// Load audio assets for various game events
+const sounds = {
+    start: new Audio('/audio/Start.wav'),
+    connect: new Audio('/audio/Connect.wav'),
+    applause: new Audio('/audio/Applause.wav')
+};
+
+function playStartSound() {
     try {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.value = 800;
-        gain.gain.value = 0.1;
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.05);
+        sounds.start.currentTime = 0;
+        sounds.start.play();
     } catch (e) {
-        console.warn('Unable to play sound', e);
+        console.warn('Unable to play start sound', e);
+    }
+}
+
+function playConnectSound() {
+    try {
+        sounds.connect.currentTime = 0;
+        sounds.connect.play();
+    } catch (e) {
+        console.warn('Unable to play connect sound', e);
+    }
+}
+
+function playApplauseSound() {
+    try {
+        sounds.applause.currentTime = 0;
+        sounds.applause.play();
+    } catch (e) {
+        console.warn('Unable to play applause sound', e);
     }
 }
 
@@ -294,6 +307,7 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
                 makeDraggable(piece, container);
             }
         }
+        playStartSound();
     };
     img.src = imageDataUrl;
 };
@@ -510,7 +524,7 @@ function snapPiece(el) {
                 const finalGroup = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
                 setGroupLayer(finalGroup);
                 finalGroup.forEach(sendMove);
-                playClickSound();
+                playConnectSound();
                 updateAllShadows();
                 checkCompletion();
                 return;
@@ -525,5 +539,6 @@ function checkCompletion() {
     const solved = window.pieces.every(p => p.dataset.groupId === groupId);
     if (solved) {
         console.log('Puzzle completed!');
+        playApplauseSound();
     }
 }
