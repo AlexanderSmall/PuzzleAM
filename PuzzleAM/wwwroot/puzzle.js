@@ -49,8 +49,13 @@ function startHubConnection() {
     hubConnection.on("PieceMoved", data => {
         const piece = window.pieces[data.id];
         if (piece) {
-            piece.style.left = data.left + "px";
-            piece.style.top = data.top + "px";
+            if (typeof window.boardLeft === 'number' && typeof window.boardWidth === 'number') {
+                piece.style.left = (window.boardLeft + data.left * window.boardWidth) + "px";
+                piece.style.top = (window.boardTop + data.top * window.boardHeight) + "px";
+            } else {
+                piece.style.left = data.left + "px";
+                piece.style.top = data.top + "px";
+            }
             if (data.groupId !== undefined) {
                 piece.dataset.groupId = data.groupId;
             }
@@ -59,32 +64,21 @@ function startHubConnection() {
     });
 
     hubConnection.on("BoardState", state => {
-        if (state.imageDataUrl && window.pieces.length === 0) {
-            window.createPuzzle(state.imageDataUrl, "puzzleContainer", state.pieceCount);
+        if (state.imageDataUrl) {
+            window.createPuzzle(state.imageDataUrl, "puzzleContainer", state);
         }
-
-        (state.pieces || []).forEach(p => {
-            const piece = window.pieces[p.id];
-            if (piece) {
-                piece.style.left = p.left + "px";
-                piece.style.top = p.top + "px";
-                if (p.groupId !== undefined) {
-                    piece.dataset.groupId = p.groupId;
-                }
-                updatePieceShadow(piece);
-            }
-        });
     });
 
     hubConnection.start().catch(err => console.error(err));
 }
 
 function sendMove(piece) {
-    if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
+    if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected &&
+        typeof window.boardLeft === 'number' && typeof window.boardWidth === 'number') {
         hubConnection.invoke("MovePiece", currentRoomCode, {
             id: parseInt(piece.dataset.pieceId),
-            left: parseFloat(piece.style.left),
-            top: parseFloat(piece.style.top),
+            left: (parseFloat(piece.style.left) - window.boardLeft) / window.boardWidth,
+            top: (parseFloat(piece.style.top) - window.boardTop) / window.boardHeight,
             groupId: parseInt(piece.dataset.groupId)
         }).catch(err => console.error(err));
     }
@@ -152,39 +146,23 @@ window.setBackgroundColor = function (color) {
     }
 };
 
-window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
+window.createPuzzle = function (imageDataUrl, containerId, layout) {
     const img = new Image();
     img.onload = function () {
-        // Determine a grid that keeps rows and columns as balanced as possible
-        let rows = Math.floor(Math.sqrt(pieceCount));
-        while (rows > 1 && pieceCount % rows !== 0) {
-            rows--;
-        }
-        let cols;
-        if (rows > 1 && pieceCount % rows === 0) {
-            cols = pieceCount / rows;
-        } else {
-            // Fallback for prime counts – approximate a square grid
-            rows = Math.floor(Math.sqrt(pieceCount));
-            cols = Math.ceil(pieceCount / rows);
-        }
+        const rows = layout.rows;
+        const cols = layout.columns;
+        const piecesLayout = layout.pieces || [];
+        const pieceMap = {};
+        piecesLayout.forEach(p => pieceMap[p.id] = p);
 
         const container = document.getElementById(containerId);
         container.classList.add('puzzle-container');
-
-        // Clear any existing puzzle elements
         container.innerHTML = '';
 
-        // Determine the available area for the puzzle based on where the
-        // container sits within the page layout. This ensures the puzzle fits
-        // entirely within the visible browser window even when there are
-        // headers, sidebars or other elements taking up space.
         const containerRect = container.getBoundingClientRect();
         const availableWidth = window.innerWidth - containerRect.left;
         const availableHeight = window.innerHeight - containerRect.top;
 
-        // Constrain the puzzle to half of the available viewport space in each
-        // dimension
         const targetWidth = availableWidth * 0.5;
         const targetHeight = availableHeight * 0.5;
         const pieceSize = Math.min(targetWidth / cols, targetHeight / rows);
@@ -201,22 +179,11 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
         const srcOffsetX = offset / scaleX;
         const srcOffsetY = offset / scaleY;
 
-        // Size the container to the available area so pieces remain within the
-        // viewport without causing scroll bars
         container.style.width = availableWidth + 'px';
         container.style.height = availableHeight + 'px';
 
-        // Centre point for where the puzzle should be assembled
         const boardLeft = (availableWidth - scaledWidth) / 2;
         const boardTop = (availableHeight - scaledHeight) / 2;
-
-        const buffer = pieceSize; // leave one piece size around the puzzle
-        const centralRect = {
-            left: boardLeft - buffer,
-            top: boardTop - buffer,
-            right: boardLeft + scaledWidth + buffer,
-            bottom: boardTop + scaledHeight + buffer
-        };
 
         const board = document.createElement('div');
         board.classList.add('puzzle-board');
@@ -226,16 +193,16 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
         board.style.height = scaledHeight + 'px';
         container.appendChild(board);
 
-        const placedRects = [];
-
-        // expose puzzle dimensions for later neighbor checks
         window.puzzleRows = rows;
         window.puzzleCols = cols;
+        window.boardLeft = boardLeft;
+        window.boardTop = boardTop;
+        window.boardWidth = scaledWidth;
+        window.boardHeight = scaledHeight;
 
         const hTabs = Array.from({ length: rows }, () => Array(cols));
         const vTabs = Array.from({ length: rows }, () => Array(cols));
 
-        // reset pieces for new puzzle
         window.pieces = [];
 
         for (let y = 0; y < rows; y++) {
@@ -250,43 +217,19 @@ window.createPuzzle = function (imageDataUrl, containerId, pieceCount) {
                 piece.height = pieceHeight + offset * 2;
                 piece.classList.add('puzzle-piece');
 
-                // Find a random starting position around the edges without overlapping others
-                let startX, startY, attempts = 0;
-                do {
-                    attempts++;
-                    const side = ['top', 'bottom', 'left', 'right'][Math.floor(Math.random() * 4)];
-                    if (side === 'top') {
-                        startX = Math.random() * Math.max(availableWidth - piece.width, 0);
-                        startY = Math.random() * Math.max(centralRect.top - piece.height, 0);
-                    } else if (side === 'bottom') {
-                        startX = Math.random() * Math.max(availableWidth - piece.width, 0);
-                        startY = centralRect.bottom + Math.random() * Math.max(availableHeight - centralRect.bottom - piece.height, 0);
-                    } else if (side === 'left') {
-                        startX = Math.random() * Math.max(centralRect.left - piece.width, 0);
-                        startY = Math.random() * Math.max(availableHeight - piece.height, 0);
-                    } else { // right
-                        startX = centralRect.right + Math.random() * Math.max(availableWidth - centralRect.right - piece.width, 0);
-                        startY = Math.random() * Math.max(availableHeight - piece.height, 0);
-                    }
-                } while (
-                    placedRects.some(r => startX < r.x + r.width && startX + piece.width > r.x &&
-                        startY < r.y + r.height && startY + piece.height > r.y) && attempts < 1000
-                );
+                const pieceIndex = window.pieces.length;
+                const p = pieceMap[pieceIndex] || { left: 0, top: 0, groupId: pieceIndex };
+                piece.style.left = boardLeft + p.left * scaledWidth + 'px';
+                piece.style.top = boardTop + p.top * scaledHeight + 'px';
 
-                placedRects.push({ x: startX, y: startY, width: piece.width, height: piece.height });
-
-                piece.style.left = startX + 'px';
-                piece.style.top = startY + 'px';
-
-                // Store the correct coordinates for snapping
                 const correctX = boardLeft + x * pieceWidth - offset;
                 const correctY = boardTop + y * pieceHeight - offset;
                 piece.dataset.correctX = correctX;
                 piece.dataset.correctY = correctY;
                 piece.dataset.width = pieceWidth;
                 piece.dataset.height = pieceHeight;
-                piece.dataset.groupId = window.pieces.length;
-                piece.dataset.pieceId = window.pieces.length;
+                piece.dataset.groupId = p.groupId !== undefined ? p.groupId : pieceIndex;
+                piece.dataset.pieceId = pieceIndex;
                 piece.dataset.row = y;
                 piece.dataset.col = x;
 
