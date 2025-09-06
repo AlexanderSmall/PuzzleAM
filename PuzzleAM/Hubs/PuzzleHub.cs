@@ -98,42 +98,46 @@ public class PuzzleHub : Hub
 
             var pieceWidth = 1.0 / state.Columns;
             var pieceHeight = 1.0 / state.Rows;
-            var buffer = Math.Max(pieceWidth, pieceHeight);
+
+            // Use a margin around the board where pieces may be scattered. If the
+            // region becomes too crowded we expand the margin to ensure pieces do
+            // not overlap and are always placed outside the board area.
+            var marginX = Math.Max(pieceWidth, pieceHeight);
+            var marginY = marginX;
 
             var placedRects = new List<(double x, double y, double w, double h)>();
             for (var id = 0; id < pieceCount; id++)
             {
                 double startX, startY;
                 var attempts = 0;
-                do
+                while (true)
                 {
                     attempts++;
-                    var side = Random.Next(4);
-                    if (side == 0)
+
+                    var rangeX = state.BoardWidth + 2 * marginX - pieceWidth;
+                    var rangeY = state.BoardHeight + 2 * marginY - pieceHeight;
+                    startX = Random.NextDouble() * rangeX - marginX;
+                    startY = Random.NextDouble() * rangeY - marginY;
+
+                    var overlapsBoard = startX < state.BoardWidth && startX + pieceWidth > 0 &&
+                                        startY < state.BoardHeight && startY + pieceHeight > 0;
+
+                    var overlapsPiece = placedRects.Any(r => startX < r.x + r.w && startX + pieceWidth > r.x &&
+                                                             startY < r.y + r.h && startY + pieceHeight > r.y);
+
+                    if (!overlapsBoard && !overlapsPiece)
                     {
-                        // top
-                        startX = Random.NextDouble() * (state.BoardWidth - pieceWidth);
-                        startY = -pieceHeight - Random.NextDouble() * buffer;
+                        break;
                     }
-                    else if (side == 1)
+
+                    if (attempts >= 1000)
                     {
-                        // bottom
-                        startX = Random.NextDouble() * (state.BoardWidth - pieceWidth);
-                        startY = state.BoardHeight + Random.NextDouble() * buffer;
+                        // No available space; expand the scatter region and try again.
+                        marginX *= 1.5;
+                        marginY *= 1.5;
+                        attempts = 0;
                     }
-                    else if (side == 2)
-                    {
-                        // left
-                        startX = -pieceWidth - Random.NextDouble() * buffer;
-                        startY = Random.NextDouble() * (state.BoardHeight - pieceHeight);
-                    }
-                    else
-                    {
-                        // right
-                        startX = state.BoardWidth + Random.NextDouble() * buffer;
-                        startY = Random.NextDouble() * (state.BoardHeight - pieceHeight);
-                    }
-                } while (placedRects.Any(r => startX < r.x + r.w && startX + pieceWidth > r.x && startY < r.y + r.h && startY + pieceHeight > r.y) && attempts < 1000);
+                }
 
                 placedRects.Add((startX, startY, pieceWidth, pieceHeight));
                 state.Pieces[id] = new PiecePosition(id, (float)startX, (float)startY, id);
