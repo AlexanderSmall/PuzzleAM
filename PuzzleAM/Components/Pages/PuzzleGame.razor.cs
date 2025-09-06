@@ -18,6 +18,7 @@ public partial class PuzzleGame : ComponentBase
     private string selectedBackground = "#EFECE6";
     private bool scriptLoaded;
     private bool joined;
+    private bool settingsVisible = true;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -107,5 +108,10 @@ public partial class PuzzleGame : ComponentBase
             joined = false;
             Nav.NavigateTo("/");
         }
+    }
+
+    private void ToggleSettings()
+    {
+        settingsVisible = !settingsVisible;
     }
 }
