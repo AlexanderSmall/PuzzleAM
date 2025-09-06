@@ -368,6 +368,16 @@ function updatePieceShadow(piece) {
 
     const shadows = [];
 
+    const topNeighbor = row > 0 ? window.pieces[(row - 1) * window.puzzleCols + col] : null;
+    if (!(topNeighbor && parseInt(topNeighbor.dataset.groupId) === groupId)) {
+        shadows.push('drop-shadow(0 -3px 6px rgba(0, 0, 0, 0.5))');
+    }
+
+    const leftNeighbor = col > 0 ? window.pieces[row * window.puzzleCols + (col - 1)] : null;
+    if (!(leftNeighbor && parseInt(leftNeighbor.dataset.groupId) === groupId)) {
+        shadows.push('drop-shadow(-3px 0 6px rgba(0, 0, 0, 0.5))');
+    }
+
     const bottomNeighbor = row < window.puzzleRows - 1 ? window.pieces[(row + 1) * window.puzzleCols + col] : null;
     if (!(bottomNeighbor && parseInt(bottomNeighbor.dataset.groupId) === groupId)) {
         shadows.push('drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5))');
