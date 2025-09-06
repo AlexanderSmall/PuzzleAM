@@ -85,11 +85,17 @@ window.setRoomCode = function (code) {
 
 window.createRoom = async function (imageDataUrl, pieceCount) {
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
-        const code = await hubConnection.invoke("CreateRoom", imageDataUrl, pieceCount);
+        const code = await hubConnection.invoke("CreateRoom", imageDataUrl || "", pieceCount || 0);
         window.setRoomCode(code);
         return code;
     }
     return null;
+};
+
+window.setPuzzle = async function (roomCode, imageDataUrl, pieceCount) {
+    if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
+        await hubConnection.invoke("SetPuzzle", roomCode, imageDataUrl, pieceCount);
+    }
 };
 
 window.joinRoom = async function (roomCode) {

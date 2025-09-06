@@ -1,21 +1,7 @@
-@page "/"
-@page "/puzzlegame"
+@page "/puzzlegame/{roomCode}"
 @rendermode InteractiveServer
 
 <PageTitle>Puzzle Game</PageTitle>
-
-<div class="mb-3">
-    <button class="btn btn-success me-2" @onclick="CreateRoom">Create Room</button>
-    @if (!string.IsNullOrEmpty(roomCode))
-    {
-        <span>Room Code: @roomCode</span>
-    }
-</div>
-
-<div class="mb-3">
-    <input class="form-control w-auto d-inline" @bind="joinCode" placeholder="Enter room code" />
-    <button class="btn btn-primary ms-2" @onclick="JoinRoom">Join Room</button>
-</div>
 
 <div class="d-flex align-items-center gap-2 mb-3">
     <select @bind="selectedPieces" class="form-select w-auto">
@@ -32,6 +18,11 @@
         <option value="#E7F1DC">#E7F1DC</option>
         <option value="#C8D2C5">#C8D2C5</option>
     </select>
+
+    @if (!string.IsNullOrEmpty(RoomCode))
+    {
+        <span>Room Code: @RoomCode</span>
+    }
 </div>
 
 <div id="puzzleContainer"></div>
