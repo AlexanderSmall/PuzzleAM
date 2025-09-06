@@ -11,6 +11,7 @@
     <ProjectReference Include="../PuzzleAM.View/PuzzleAM.View.csproj" />
     <ProjectReference Include="../PuzzleAM.ViewServices/PuzzleAM.ViewServices.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.7" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
   </ItemGroup>
 
   <ItemGroup>
