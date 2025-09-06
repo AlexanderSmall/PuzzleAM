@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using PuzzleAM;
 using PuzzleAM.Components;
 using PuzzleAM.Hubs;
 using PuzzleAM.ViewServices;
@@ -75,7 +76,7 @@ app.MapPost("/login", async (SignInManager<IdentityUser> signInManager, LoginReq
     return result.Succeeded ? Results.Ok() : Results.BadRequest("Invalid login attempt");
 });
 
+app.Run();
+
 public record RegisterRequest(string Username, string Password, string ConfirmPassword);
 public record LoginRequest(string Username, string Password);
-
-app.Run();
