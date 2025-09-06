@@ -493,7 +493,7 @@ function snapPiece(el) {
         const pieceHeight = parseFloat(piece.dataset.height);
 
         for (const neighbor of window.pieces) {
-            if (neighbor.dataset.groupId === groupId) continue;
+            if (parseInt(neighbor.dataset.groupId) === groupId) continue;
 
             const expectedDx = parseFloat(neighbor.dataset.correctX) - pieceCorrectX;
             const expectedDy = parseFloat(neighbor.dataset.correctY) - pieceCorrectY;
