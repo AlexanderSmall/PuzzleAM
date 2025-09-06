@@ -11,12 +11,27 @@ public partial class PuzzleGame : ComponentBase
     private string? imageDataUrl;
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private ILogger<PuzzleGame> Logger { get; set; } = default!;
-    private string? roomCode;
-    private string? joinCode;
+    [Parameter] public string? RoomCode { get; set; }
     private int selectedPieces = 100;
     private static readonly int[] PieceOptions = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 };
     private string selectedBackground = "#EFECE6";
     private bool scriptLoaded;
+    private bool joined;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!joined && !string.IsNullOrEmpty(RoomCode))
+        {
+            var state = await JS.InvokeAsync<PuzzleState?>("joinRoom", RoomCode);
+            if (state is not null && !string.IsNullOrEmpty(state.ImageDataUrl))
+            {
+                imageDataUrl = state.ImageDataUrl;
+                selectedPieces = state.PieceCount;
+                await JS.InvokeVoidAsync("createPuzzle", imageDataUrl, "puzzleContainer", selectedPieces);
+            }
+            joined = true;
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -57,26 +72,9 @@ public partial class PuzzleGame : ComponentBase
         await stream.CopyToAsync(ms);        // ensures the full file is read
         imageDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
         await JS.InvokeVoidAsync("createPuzzle", imageDataUrl, "puzzleContainer", selectedPieces);
-    }
-
-    private async Task CreateRoom()
-    {
-        if (string.IsNullOrEmpty(imageDataUrl)) return;
-        roomCode = await JS.InvokeAsync<string?>("createRoom", imageDataUrl, selectedPieces);
-    }
-
-    private async Task JoinRoom()
-    {
-        if (string.IsNullOrWhiteSpace(joinCode)) return;
-        var state = await JS.InvokeAsync<PuzzleState?>("joinRoom", joinCode);
-        if (state is not null && !string.IsNullOrEmpty(state.ImageDataUrl))
+        if (!string.IsNullOrEmpty(RoomCode))
         {
-            imageDataUrl = state.ImageDataUrl;
-            selectedPieces = state.PieceCount;
-            await JS.InvokeVoidAsync("createPuzzle", imageDataUrl, "puzzleContainer", selectedPieces);
-            roomCode = joinCode;
+            await JS.InvokeVoidAsync("setPuzzle", RoomCode, imageDataUrl, selectedPieces);
         }
     }
-
 }
-

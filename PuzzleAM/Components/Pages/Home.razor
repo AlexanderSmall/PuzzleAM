@@ -1,0 +1,43 @@
+@page "/"
+@rendermode InteractiveServer
+@using PuzzleAM.Model
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<h1 class="text-center fw-bold mt-5">Puzzle AM</h1>
+<div class="d-flex flex-column align-items-center justify-content-center" style="height:70vh;">
+    <button class="btn btn-success mb-3" @onclick="CreateRoom">Create Room</button>
+    <div class="input-group w-auto mb-2">
+        <input class="form-control" @bind="joinCode" placeholder="Enter room code" />
+        <button class="btn btn-primary" @onclick="JoinRoom">Join Room</button>
+    </div>
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="text-danger">@errorMessage</div>
+    }
+</div>
+
+@code {
+    private string? joinCode;
+    private string? errorMessage;
+
+    private async Task CreateRoom()
+    {
+        var code = await JS.InvokeAsync<string>("createRoom");
+        Nav.NavigateTo($"/puzzlegame/{code}");
+    }
+
+    private async Task JoinRoom()
+    {
+        if (string.IsNullOrWhiteSpace(joinCode)) return;
+        var state = await JS.InvokeAsync<PuzzleState?>("joinRoom", joinCode);
+        if (state is not null)
+        {
+            Nav.NavigateTo($"/puzzlegame/{joinCode}");
+        }
+        else
+        {
+            errorMessage = "Room code does not exist";
+        }
+    }
+}

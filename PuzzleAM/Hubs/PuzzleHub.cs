@@ -30,6 +30,19 @@ public class PuzzleHub : Hub
         return code;
     }
 
+    public Task<string> CreateRoom() => CreateRoom(string.Empty, 0);
+
+    public async Task SetPuzzle(string roomCode, string imageDataUrl, int pieceCount)
+    {
+        if (Rooms.TryGetValue(roomCode, out var state))
+        {
+            state.ImageDataUrl = imageDataUrl;
+            state.PieceCount = pieceCount;
+            state.Pieces.Clear();
+            await Clients.Group(roomCode).SendAsync("BoardState", state);
+        }
+    }
+
     public async Task<PuzzleState?> JoinRoom(string roomCode)
     {
         if (Rooms.TryGetValue(roomCode, out var state))
