@@ -5,6 +5,8 @@ using PuzzleAM;
 using PuzzleAM.Components;
 using PuzzleAM.Hubs;
 using PuzzleAM.ViewServices;
+using Microsoft.AspNetCore.Components;
+using System.Net.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +17,10 @@ builder.Services.AddRazorComponents()
 builder.Services.AddScoped<ModalService>();
 builder.Services.AddSignalR(o =>
     o.MaximumReceiveMessageSize = 10 * 1024 * 1024);
+builder.Services.AddScoped(sp => new HttpClient
+    {
+        BaseAddress = new Uri(sp.GetRequiredService<NavigationManager>().BaseUri)
+    });
 
 var connection = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db";
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
