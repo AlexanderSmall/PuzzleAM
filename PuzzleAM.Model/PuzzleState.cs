@@ -28,4 +28,5 @@ public class PuzzleState
     public int Columns { get; set; }
 
     public ConcurrentDictionary<int, PiecePosition> Pieces { get; } = new();
+    public ConcurrentDictionary<string, string> Users { get; } = new();
 }
