@@ -18,21 +18,6 @@ public partial class PuzzleGame : ComponentBase
     private bool scriptLoaded;
     private bool joined;
 
-    protected override async Task OnParametersSetAsync()
-    {
-        if (!joined && !string.IsNullOrEmpty(RoomCode))
-        {
-            var state = await JS.InvokeAsync<PuzzleState?>("joinRoom", RoomCode);
-            if (state is not null && !string.IsNullOrEmpty(state.ImageDataUrl))
-            {
-                imageDataUrl = state.ImageDataUrl;
-                selectedPieces = state.PieceCount;
-                await JS.InvokeVoidAsync("createPuzzle", imageDataUrl, "puzzleContainer", selectedPieces);
-            }
-            joined = true;
-        }
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -41,10 +26,22 @@ public partial class PuzzleGame : ComponentBase
             {
                 await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
                 scriptLoaded = true;
+
+                if (!joined && !string.IsNullOrEmpty(RoomCode))
+                {
+                    var state = await JS.InvokeAsync<PuzzleState?>("joinRoom", RoomCode);
+                    if (state is not null && !string.IsNullOrEmpty(state.ImageDataUrl))
+                    {
+                        imageDataUrl = state.ImageDataUrl;
+                        selectedPieces = state.PieceCount;
+                        await JS.InvokeVoidAsync("createPuzzle", imageDataUrl, "puzzleContainer", selectedPieces);
+                    }
+                    joined = true;
+                }
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error applying background color");
+                Logger.LogError(ex, "Error initializing puzzle");
             }
         }
     }
