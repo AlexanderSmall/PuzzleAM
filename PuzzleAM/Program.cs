@@ -9,7 +9,8 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddScoped<ModalService>();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(o =>
+    o.MaximumReceiveMessageSize = 10 * 1024 * 1024);
 
 var app = builder.Build();
 
