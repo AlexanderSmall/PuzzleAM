@@ -361,34 +361,54 @@ function setGroupLayer(groupPieces) {
     groupPieces.forEach(p => p.style.zIndex = window.maxZ);
 }
 
+// Precompute drop-shadow filter combinations to minimize dynamic string creation
+const baseShadows = [
+    'drop-shadow(0 -3px 6px rgba(0, 0, 0, 0.5))', // top
+    'drop-shadow(-3px 0 6px rgba(0, 0, 0, 0.5))', // left
+    'drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5))', // bottom
+    'drop-shadow(3px 0 6px rgba(0, 0, 0, 0.5))'  // right
+];
+const shadowCache = Array(16).fill('none');
+for (let i = 1; i < 16; i++) {
+    const parts = [];
+    if (i & 1) parts.push(baseShadows[0]);
+    if (i & 2) parts.push(baseShadows[1]);
+    if (i & 4) parts.push(baseShadows[2]);
+    if (i & 8) parts.push(baseShadows[3]);
+    shadowCache[i] = parts.join(' ');
+}
+
 function updatePieceShadow(piece) {
     const groupId = parseInt(piece.dataset.groupId);
     const row = parseInt(piece.dataset.row);
     const col = parseInt(piece.dataset.col);
 
-    const shadows = [];
+    let mask = 0;
 
     const topNeighbor = row > 0 ? window.pieces[(row - 1) * window.puzzleCols + col] : null;
     if (!(topNeighbor && parseInt(topNeighbor.dataset.groupId) === groupId)) {
-        shadows.push('drop-shadow(0 -3px 6px rgba(0, 0, 0, 0.5))');
+        mask |= 1;
     }
 
     const leftNeighbor = col > 0 ? window.pieces[row * window.puzzleCols + (col - 1)] : null;
     if (!(leftNeighbor && parseInt(leftNeighbor.dataset.groupId) === groupId)) {
-        shadows.push('drop-shadow(-3px 0 6px rgba(0, 0, 0, 0.5))');
+        mask |= 2;
     }
 
     const bottomNeighbor = row < window.puzzleRows - 1 ? window.pieces[(row + 1) * window.puzzleCols + col] : null;
     if (!(bottomNeighbor && parseInt(bottomNeighbor.dataset.groupId) === groupId)) {
-        shadows.push('drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5))');
+        mask |= 4;
     }
 
     const rightNeighbor = col < window.puzzleCols - 1 ? window.pieces[row * window.puzzleCols + (col + 1)] : null;
     if (!(rightNeighbor && parseInt(rightNeighbor.dataset.groupId) === groupId)) {
-        shadows.push('drop-shadow(3px 0 6px rgba(0, 0, 0, 0.5))');
+        mask |= 8;
     }
 
-    piece.style.filter = shadows.length ? shadows.join(' ') : 'none';
+    if (piece.dataset.shadowMask != mask) {
+        piece.dataset.shadowMask = mask;
+        piece.style.filter = shadowCache[mask];
+    }
 }
 
 function updateAllShadows() {
