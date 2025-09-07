@@ -4,6 +4,7 @@
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @inject HttpClient Http
+@inject AntiforgeryStateProvider Antiforgery
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Net.Http.Json
 
@@ -105,7 +106,13 @@
             registerError = "Passwords do not match";
             return;
         }
-        var response = await Http.PostAsJsonAsync("/register", registerModel);
+        var token = Antiforgery.GetAntiforgeryToken();
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/register")
+        {
+            Content = JsonContent.Create(registerModel)
+        };
+        request.Headers.Add("RequestVerificationToken", token.RequestToken);
+        var response = await Http.SendAsync(request);
         if (response.IsSuccessStatusCode)
         {
             registerError = null;
@@ -118,7 +125,13 @@
 
     private async Task Login()
     {
-        var response = await Http.PostAsJsonAsync("/login", loginModel);
+        var token = Antiforgery.GetAntiforgeryToken();
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/login")
+        {
+            Content = JsonContent.Create(loginModel)
+        };
+        request.Headers.Add("RequestVerificationToken", token.RequestToken);
+        var response = await Http.SendAsync(request);
         if (response.IsSuccessStatusCode)
         {
             loginError = null;
