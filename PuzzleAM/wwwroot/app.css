@@ -86,6 +86,8 @@ h1:focus {
     /* Prevent puzzle pieces or their shadows from overflowing and causing
        scrollbars so the entire page fits within the viewport */
     overflow: hidden;
+    width: 100vw;
+    height: 100vh;
 }
 
 .puzzle-board {

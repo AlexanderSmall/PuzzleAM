@@ -222,10 +222,16 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         const availableWidth = window.innerWidth - containerRect.left;
         const availableHeight = window.innerHeight - containerRect.top;
 
-        const widthFactor = window.innerWidth <= 768 ? 0.9 : 0.5;
-        const heightFactor = window.innerWidth <= 768 ? 0.6 : 0.5;
-        const targetWidth = availableWidth * widthFactor;
-        const targetHeight = availableHeight * heightFactor;
+        container.style.width = availableWidth + 'px';
+        container.style.height = availableHeight + 'px';
+
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+
+        const widthFactor = window.innerWidth <= 768 ? 0.95 : 0.5;
+        const heightFactor = window.innerWidth <= 768 ? 0.95 : 0.5;
+        const targetWidth = containerWidth * widthFactor;
+        const targetHeight = containerHeight * heightFactor;
         const scale = Math.min(targetWidth / img.width, targetHeight / img.height);
         const scaledWidth = img.width * scale;
         const scaledHeight = img.height * scale;
@@ -238,11 +244,8 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         const srcOffsetX = offset / scale;
         const srcOffsetY = offset / scale;
 
-        container.style.width = availableWidth + 'px';
-        container.style.height = availableHeight + 'px';
-
-        const boardLeft = (availableWidth - scaledWidth) / 2;
-        const boardTop = (availableHeight - scaledHeight) / 2;
+        const boardLeft = (containerWidth - scaledWidth) / 2;
+        const boardTop = (containerHeight - scaledHeight) / 2;
 
         const board = document.createElement('div');
         board.classList.add('puzzle-board');
