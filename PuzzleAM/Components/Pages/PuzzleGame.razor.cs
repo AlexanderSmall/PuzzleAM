@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
+using PuzzleAM;
 using PuzzleAM.Model;
 using System.Diagnostics;
+using System.Security.Claims;
 using System.Threading;
 
 namespace PuzzleAM.Components.Pages;
@@ -14,6 +17,8 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private ILogger<PuzzleGame> Logger { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
+    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+    [Inject] private ApplicationDbContext Db { get; set; } = default!;
     [Parameter] public string? RoomCode { get; set; }
     private int selectedPieces = 100;
     private static readonly int[] PieceOptions = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 };
@@ -149,7 +154,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     }
 
     [JSInvokable]
-    public Task PuzzleCompleted()
+    public async Task PuzzleCompleted()
     {
         timer?.Dispose();
         if (stopwatch.IsRunning)
@@ -158,7 +163,26 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             elapsed = stopwatch.Elapsed;
             StateHasChanged();
         }
-        return Task.CompletedTask;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(imageDataUrl))
+        {
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId is not null)
+            {
+                var puzzle = new CompletedPuzzle
+                {
+                    UserId = userId,
+                    UserName = user.Identity?.Name,
+                    ImageDataUrl = imageDataUrl,
+                    PieceCount = selectedPieces,
+                    TimeToComplete = elapsed
+                };
+                Db.CompletedPuzzles.Add(puzzle);
+                await Db.SaveChangesAsync();
+            }
+        }
     }
 
     public async ValueTask DisposeAsync()
