@@ -543,3 +543,12 @@ function checkCompletion() {
         playApplauseSound();
     }
 }
+
+window.closeModal = function (id) {
+    const el = document.getElementById(id);
+    if (!el) {
+        return;
+    }
+    const modal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+    modal.hide();
+};

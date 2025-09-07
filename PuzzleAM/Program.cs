@@ -7,6 +7,7 @@ using PuzzleAM.Hubs;
 using PuzzleAM.ViewServices;
 using Microsoft.AspNetCore.Components;
 using System.Net.Http;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,6 +82,11 @@ app.MapPost("/login", async (SignInManager<IdentityUser> signInManager, LoginReq
     var result = await signInManager.PasswordSignInAsync(req.Username, req.Password, isPersistent: false, lockoutOnFailure: false);
     return result.Succeeded ? Results.Ok() : Results.BadRequest("Invalid login attempt");
 });
+
+app.MapGet("/user", (ClaimsPrincipal user) =>
+    user.Identity?.IsAuthenticated == true
+        ? Results.Ok(user.Identity.Name)
+        : Results.Unauthorized());
 
 app.Run();
 
