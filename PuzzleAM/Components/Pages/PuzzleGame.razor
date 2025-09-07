@@ -5,7 +5,7 @@
 
 <div class="settings-wrapper mb-3">
     <div class="settings-panel @(settingsVisible ? "open" : "closed") d-flex flex-wrap justify-content-center align-items-center gap-2">
-        <span class="puzzle-icon">🧩</span>
+        <img src="/lib/heroicons/puzzle-piece.svg" class="puzzle-icon" alt="Puzzle icon" />
         <select @bind="selectedPieces" class="form-select w-auto">
             @foreach (var option in PieceOptions)
             {
@@ -14,7 +14,9 @@
         </select>
 
         <InputFile id="imageLoader" OnChange="OnInputFileChange" class="d-none" />
-        <label for="imageLoader" class="btn btn-primary load-icon" title="Load Image">🖼️</label>
+        <label for="imageLoader" class="btn btn-primary load-icon" title="Load Image">
+            <img src="/lib/heroicons/image.svg" alt="Load image icon" />
+        </label>
 
         <select @bind="selectedBackground" @bind:after="OnBackgroundChange" class="form-select color-select" style="background-color:@selectedBackground;">
             <option value="#EFECE6" style="background-color:#EFECE6;" selected></option>
@@ -25,8 +27,12 @@
         @if (!string.IsNullOrEmpty(RoomCode))
         {
             <span>Room Code: @RoomCode</span>
-            <button class="btn btn-outline-secondary copy-icon" @onclick="CopyRoomCode" title="Copy">📋</button>
-            <button class="btn btn-danger" @onclick="LeaveRoom">Leave Room</button>
+            <button class="btn btn-outline-secondary copy-icon" @onclick="CopyRoomCode" title="Copy room code">
+                <img src="/lib/heroicons/clipboard.svg" alt="Copy room code" />
+            </button>
+            <button class="btn btn-danger leave-icon" @onclick="LeaveRoom" title="Leave Room">
+                <img src="/lib/heroicons/arrow-left-on-rectangle.svg" alt="Leave room" />
+            </button>
         }
     </div>
     <Tab Class="settings-tab" IsOpen="settingsVisible" OnToggle="ToggleSettings" Vertical="true" />
