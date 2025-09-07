@@ -84,6 +84,16 @@ async function startHubConnection() {
             if (leftNeighbor) {
                 updatePieceShadow(leftNeighbor);
             }
+
+            const bottomNeighbor = row < window.puzzleRows - 1 ? window.pieces[(row + 1) * window.puzzleCols + col] : null;
+            if (bottomNeighbor) {
+                updatePieceShadow(bottomNeighbor);
+            }
+
+            const rightNeighbor = col < window.puzzleCols - 1 ? window.pieces[row * window.puzzleCols + (col + 1)] : null;
+            if (rightNeighbor) {
+                updatePieceShadow(rightNeighbor);
+            }
         }
     });
 
