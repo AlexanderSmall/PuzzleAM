@@ -385,15 +385,41 @@ function updatePieceShadow(piece) {
     const row = parseInt(piece.dataset.row);
     const col = parseInt(piece.dataset.col);
 
+    const pieceCorrectX = parseFloat(piece.dataset.correctX);
+    const pieceCorrectY = parseFloat(piece.dataset.correctY);
+    const pieceWidth = parseFloat(piece.dataset.width);
+    const pieceHeight = parseFloat(piece.dataset.height);
+
     const shadows = [];
+    const threshold = 5;
 
     const bottomNeighbor = row < window.puzzleRows - 1 ? window.pieces[(row + 1) * window.puzzleCols + col] : null;
-    if (!(bottomNeighbor && parseInt(bottomNeighbor.dataset.groupId) === groupId)) {
+    if (bottomNeighbor && parseInt(bottomNeighbor.dataset.groupId) === groupId) {
+        const expectedDx = parseFloat(bottomNeighbor.dataset.correctX) - pieceCorrectX;
+        const expectedDy = pieceHeight;
+        const actualDx = parseFloat(bottomNeighbor.style.left) - parseFloat(piece.style.left);
+        const actualDy = parseFloat(bottomNeighbor.style.top) - parseFloat(piece.style.top);
+        const diffX = Math.abs(actualDx - expectedDx);
+        const diffY = Math.abs(actualDy - expectedDy);
+        if (diffX >= threshold || diffY >= threshold) {
+            shadows.push('drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5))');
+        }
+    } else {
         shadows.push('drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5))');
     }
 
     const rightNeighbor = col < window.puzzleCols - 1 ? window.pieces[row * window.puzzleCols + (col + 1)] : null;
-    if (!(rightNeighbor && parseInt(rightNeighbor.dataset.groupId) === groupId)) {
+    if (rightNeighbor && parseInt(rightNeighbor.dataset.groupId) === groupId) {
+        const expectedDx = pieceWidth;
+        const expectedDy = parseFloat(rightNeighbor.dataset.correctY) - pieceCorrectY;
+        const actualDx = parseFloat(rightNeighbor.style.left) - parseFloat(piece.style.left);
+        const actualDy = parseFloat(rightNeighbor.style.top) - parseFloat(piece.style.top);
+        const diffX = Math.abs(actualDx - expectedDx);
+        const diffY = Math.abs(actualDy - expectedDy);
+        if (diffX >= threshold || diffY >= threshold) {
+            shadows.push('drop-shadow(3px 0 6px rgba(0, 0, 0, 0.5))');
+        }
+    } else {
         shadows.push('drop-shadow(3px 0 6px rgba(0, 0, 0, 0.5))');
     }
 
