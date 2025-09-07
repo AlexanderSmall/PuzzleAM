@@ -26,7 +26,6 @@
 
         @if (!string.IsNullOrEmpty(RoomCode))
         {
-            <span>Room Code: @RoomCode</span>
             <button class="btn btn-outline-secondary copy-icon" @onclick="CopyRoomCode" title="Copy room code">
                 <img src="/lib/heroicons/clipboard.svg" alt="Copy room code" />
             </button>
@@ -44,6 +43,10 @@
 
 <div class="user-wrapper">
     <div class="user-panel @(userListVisible ? "open" : "closed")">
+        @if (!string.IsNullOrEmpty(RoomCode))
+        {
+            <div class="room-code">Room Code: @RoomCode</div>
+        }
         <h5>Users</h5>
         <ul>
             @foreach (var u in users)

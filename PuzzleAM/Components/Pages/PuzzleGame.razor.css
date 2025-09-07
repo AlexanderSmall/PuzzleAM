@@ -2,8 +2,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    position: relative;
-    z-index: 1;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
 }
 
 .settings-panel {
@@ -25,20 +28,22 @@
 
 .user-wrapper {
     position: fixed;
-    top: 1rem;
+    top: 4.5rem;
     right: 1rem;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    z-index: 1;
+    z-index: 1000;
 }
 
 .user-panel {
     width: 200px;
-    background: #fff;
-    border: 1px solid #ccc;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     padding: 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(4px);
     max-height: 90vh;
     overflow-y: auto;
     transition: max-height 0.3s ease, opacity 0.3s ease;
@@ -62,6 +67,11 @@
     text-align: center;
     position: relative;
     z-index: 1;
+}
+
+.room-code {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
 }
 
 @media (max-width: 768px) {

@@ -23,7 +23,7 @@
 @code {
     private bool navOpen = false;
 
-    private string NavTabStyle => $"position:absolute;top:1rem;left:{(navOpen ? "250px" : "0")};transition:left 0.3s ease;z-index:1;";
+    private string NavTabStyle => $"position:fixed;top:1rem;left:{(navOpen ? "250px" : "0")};transition:left 0.3s ease;z-index:1001;";
 
     private void ToggleNav()
     {
