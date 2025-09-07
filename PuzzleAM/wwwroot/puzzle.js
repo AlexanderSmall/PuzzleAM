@@ -180,14 +180,18 @@ startHubConnection();
 
 // Rebuild puzzle on window resize using the stored layout (debounced)
 let resizeTimeout;
-window.addEventListener('resize', () => {
+function handleResize() {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
         if (window.currentImageDataUrl && window.currentLayout && window.currentContainerId) {
             window.createPuzzle(window.currentImageDataUrl, window.currentContainerId, window.currentLayout);
         }
     }, 200);
-});
+}
+window.addEventListener('resize', handleResize);
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', handleResize);
+}
 
 window.setRoomCode = function (code) {
     currentRoomCode = code;
@@ -275,10 +279,12 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         container.classList.add('puzzle-container');
         container.innerHTML = '';
 
-        // Size the container to fill the viewport
+        // Size the container to fill the viewport using visualViewport if available
+        const viewportWidth = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+        const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
         const containerRect = container.getBoundingClientRect();
-        const availableWidth = window.innerWidth - containerRect.left;
-        const availableHeight = window.innerHeight - containerRect.top;
+        const availableWidth = viewportWidth - containerRect.left;
+        const availableHeight = viewportHeight - containerRect.top;
 
         container.style.width = availableWidth + 'px';
         container.style.height = availableHeight + 'px';
