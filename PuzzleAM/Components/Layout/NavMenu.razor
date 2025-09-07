@@ -8,6 +8,12 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
+        <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">Home</NavLink>
+        <AuthorizeView>
+            <Authorized>
+                <NavLink class="nav-link" href="/gallery">Gallery</NavLink>
+            </Authorized>
+        </AuthorizeView>
     </nav>
 </div>
 

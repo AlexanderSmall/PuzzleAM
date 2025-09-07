@@ -10,4 +10,6 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         : base(options)
     {
     }
+
+    public DbSet<CompletedPuzzle> CompletedPuzzles { get; set; } = default!;
 }

@@ -1,0 +1,55 @@
+@page "/gallery"
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Db
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h1>Gallery</h1>
+
+@if (puzzles is null)
+{
+    <p>Loading...</p>
+}
+else if (!puzzles.Any())
+{
+    <p>No completed puzzles yet.</p>
+}
+else
+{
+    <div class="gallery-container">
+        @foreach (var p in puzzles)
+        {
+            <div class="puzzle-item">
+                <img src="@p.ImageDataUrl" alt="Completed puzzle" />
+                <div>Pieces: @p.PieceCount</div>
+                <div>Time: @p.TimeToComplete.ToString(@"hh\\:mm\\:ss")</div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<CompletedPuzzle>? puzzles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId is not null)
+            {
+                puzzles = await Db.CompletedPuzzles
+                    .Where(p => p.UserId == userId)
+                    .OrderByDescending(p => p.Id)
+                    .ToListAsync();
+            }
+            else
+            {
+                puzzles = new List<CompletedPuzzle>();
+            }
+        }
+    }
+}
