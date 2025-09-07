@@ -485,71 +485,57 @@ function getAdjacentPieces(piece) {
 function snapPiece(el) {
     const threshold = 15;
     const groupId = parseInt(el.dataset.groupId);
-    const groupPieces = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
+    let merged;
 
-    /*
-    // Snap to correct location if the dragged piece is close
-    const correctX = parseFloat(el.dataset.correctX);
-    const correctY = parseFloat(el.dataset.correctY);
-    const currentX = parseFloat(el.style.left);
-    const currentY = parseFloat(el.style.top);
-    const diffCorrectX = correctX - currentX;
-    const diffCorrectY = correctY - currentY;
-    if (Math.abs(diffCorrectX) < threshold && Math.abs(diffCorrectY) < threshold) {
-        groupPieces.forEach(p => {
-            p.style.left = (parseFloat(p.style.left) + diffCorrectX) + 'px';
-            p.style.top = (parseFloat(p.style.top) + diffCorrectY) + 'px';
-            sendMove(p);
-        });
-        updateAllShadows();
-        checkCompletion();
-        return;
-    }
-    */
+    do {
+        merged = false;
+        const groupPieces = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
 
-    // Check all pieces in the group for connections to other groups
-    for (const piece of groupPieces) {
-        const pieceCorrectX = parseFloat(piece.dataset.correctX);
-        const pieceCorrectY = parseFloat(piece.dataset.correctY);
-        const pieceCurrentX = parseFloat(piece.style.left);
-        const pieceCurrentY = parseFloat(piece.style.top);
+        // Check all pieces in the group for connections to other groups
+        outer: for (const piece of groupPieces) {
+            const pieceCorrectX = parseFloat(piece.dataset.correctX);
+            const pieceCorrectY = parseFloat(piece.dataset.correctY);
+            const pieceCurrentX = parseFloat(piece.style.left);
+            const pieceCurrentY = parseFloat(piece.style.top);
 
-        const neighbors = getAdjacentPieces(piece);
-        for (const neighbor of neighbors) {
-            if (parseInt(neighbor.dataset.groupId) === groupId) continue;
+            const neighbors = getAdjacentPieces(piece);
+            for (const neighbor of neighbors) {
+                if (parseInt(neighbor.dataset.groupId) === groupId) continue;
 
-            const expectedDx = parseFloat(neighbor.dataset.correctX) - pieceCorrectX;
-            const expectedDy = parseFloat(neighbor.dataset.correctY) - pieceCorrectY;
+                const expectedDx = parseFloat(neighbor.dataset.correctX) - pieceCorrectX;
+                const expectedDy = parseFloat(neighbor.dataset.correctY) - pieceCorrectY;
 
-            const actualDx = parseFloat(neighbor.style.left) - pieceCurrentX;
-            const actualDy = parseFloat(neighbor.style.top) - pieceCurrentY;
-            const diffX = actualDx - expectedDx;
-            const diffY = actualDy - expectedDy;
+                const actualDx = parseFloat(neighbor.style.left) - pieceCurrentX;
+                const actualDy = parseFloat(neighbor.style.top) - pieceCurrentY;
+                const diffX = actualDx - expectedDx;
+                const diffY = actualDy - expectedDy;
 
-            if (Math.abs(diffX) < threshold && Math.abs(diffY) < threshold) {
-                groupPieces.forEach(p => {
-                    p.style.left = (parseFloat(p.style.left) + diffX) + 'px';
-                    p.style.top = (parseFloat(p.style.top) + diffY) + 'px';
-                    sendMove(p);
-                });
+                if (Math.abs(diffX) < threshold && Math.abs(diffY) < threshold) {
+                    groupPieces.forEach(p => {
+                        p.style.left = (parseFloat(p.style.left) + diffX) + 'px';
+                        p.style.top = (parseFloat(p.style.top) + diffY) + 'px';
+                        sendMove(p);
+                    });
 
-                const neighborGroupId = parseInt(neighbor.dataset.groupId);
-                window.pieces.forEach(p => {
-                    if (parseInt(p.dataset.groupId) === neighborGroupId) {
-                        p.dataset.groupId = groupId;
-                    }
-                });
+                    const neighborGroupId = parseInt(neighbor.dataset.groupId);
+                    window.pieces.forEach(p => {
+                        if (parseInt(p.dataset.groupId) === neighborGroupId) {
+                            p.dataset.groupId = groupId;
+                        }
+                    });
 
-                const finalGroup = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
-                setGroupLayer(finalGroup);
-                finalGroup.forEach(sendMove);
-                playConnectSound();
-                updateAllShadows();
-                checkCompletion();
-                return;
+                    const finalGroup = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
+                    setGroupLayer(finalGroup);
+                    finalGroup.forEach(sendMove);
+                    playConnectSound();
+                    updateAllShadows();
+                    checkCompletion();
+                    merged = true;
+                    break outer;
+                }
             }
         }
-    }
+    } while (merged);
 
     updateAllShadows();
     checkCompletion();
