@@ -178,7 +178,7 @@ function sendMove(piece) {
 // Start the SignalR connection immediately instead of waiting for the window load event
 startHubConnection();
 
-// Rebuild puzzle on window resize using the stored layout (debounced)
+// Rebuild puzzle on viewport changes using the stored layout (debounced)
 let resizeTimeout;
 function handleResize() {
     clearTimeout(resizeTimeout);
@@ -189,6 +189,7 @@ function handleResize() {
     }, 200);
 }
 window.addEventListener('resize', handleResize);
+window.addEventListener('orientationchange', handleResize);
 if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', handleResize);
 }
