@@ -81,13 +81,16 @@ h1:focus {
 }
 
 .puzzle-container {
-    position: relative;
+    position: fixed;
+    top: 0;
+    left: 0;
     background-color: transparent;
     /* Prevent puzzle pieces or their shadows from overflowing and causing
        scrollbars so the entire page fits within the viewport */
     overflow: hidden;
     width: 100vw;
     height: 100vh;
+    z-index: 0;
 }
 
 .puzzle-board {
