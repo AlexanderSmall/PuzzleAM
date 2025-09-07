@@ -32,3 +32,9 @@
     max-height: 90vh;
     overflow-y: auto;
 }
+
+.timer-display {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}

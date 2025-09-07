@@ -18,6 +18,11 @@ window.registerUserListHandler = function (dotNetHelper) {
     userListHandler = dotNetHelper;
 };
 
+let puzzleEventHandler;
+window.registerPuzzleEventHandler = function (dotNetHelper) {
+    puzzleEventHandler = dotNetHelper;
+};
+
 function playStartSound() {
     try {
         sounds.start.currentTime = 0;
@@ -312,6 +317,9 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         }
         updateAllShadows();
         playStartSound();
+        if (puzzleEventHandler) {
+            puzzleEventHandler.invokeMethodAsync('PuzzleLoaded');
+        }
     };
     img.src = imageDataUrl;
 };
@@ -590,6 +598,9 @@ function checkCompletion() {
     if (solved) {
         console.log('Puzzle completed!');
         playApplauseSound();
+        if (puzzleEventHandler) {
+            puzzleEventHandler.invokeMethodAsync('PuzzleCompleted');
+        }
     }
 }
 

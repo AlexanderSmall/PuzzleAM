@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using PuzzleAM.Model;
+using System.Diagnostics;
+using System.Threading;
 
 namespace PuzzleAM.Components.Pages;
 
@@ -21,6 +23,9 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     private bool settingsVisible = true;
     private List<string> users = new();
     private DotNetObjectReference<PuzzleGame>? objRef;
+    private readonly Stopwatch stopwatch = new();
+    private Timer? timer;
+    private TimeSpan elapsed = TimeSpan.Zero;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -31,6 +36,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
                 await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
                 objRef = DotNetObjectReference.Create(this);
                 await JS.InvokeVoidAsync("registerUserListHandler", objRef);
+                await JS.InvokeVoidAsync("registerPuzzleEventHandler", objRef);
                 scriptLoaded = true;
 
                 if (!joined && !string.IsNullOrEmpty(RoomCode))
@@ -128,8 +134,36 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         return Task.CompletedTask;
     }
 
+    [JSInvokable]
+    public Task PuzzleLoaded()
+    {
+        stopwatch.Restart();
+        elapsed = TimeSpan.Zero;
+        timer?.Dispose();
+        timer = new Timer(_ =>
+        {
+            elapsed = stopwatch.Elapsed;
+            InvokeAsync(StateHasChanged);
+        }, null, 0, 1000);
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public Task PuzzleCompleted()
+    {
+        timer?.Dispose();
+        if (stopwatch.IsRunning)
+        {
+            stopwatch.Stop();
+            elapsed = stopwatch.Elapsed;
+            StateHasChanged();
+        }
+        return Task.CompletedTask;
+    }
+
     public async ValueTask DisposeAsync()
     {
+        timer?.Dispose();
         objRef?.Dispose();
         await Task.CompletedTask;
     }
