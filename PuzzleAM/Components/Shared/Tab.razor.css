@@ -1,0 +1,13 @@
+.tab {
+    width: 1.5rem;
+    height: 1.5rem;
+    background-color: rgba(5, 39, 103, 0.8);
+    color: white;
+    border: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}

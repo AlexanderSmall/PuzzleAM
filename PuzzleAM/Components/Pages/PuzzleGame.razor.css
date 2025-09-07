@@ -16,8 +16,9 @@
     opacity: 0;
 }
 
-.settings-toggle {
+::deep(.settings-tab) {
     margin-top: 0.5rem;
+    border-radius: 4px 4px 0 0;
 }
 
 .user-wrapper {
@@ -47,8 +48,9 @@
     overflow: hidden;
 }
 
-.user-toggle {
+::deep(.user-tab) {
     margin-top: 0.5rem;
+    border-radius: 4px 4px 0 0;
 }
 
 .timer-display {
@@ -67,7 +69,7 @@
         z-index: 1000;
     }
 
-    .settings-toggle {
+    ::deep(.settings-tab) {
         position: fixed;
         bottom: 1rem;
         right: 1rem;

@@ -29,9 +29,7 @@
             <button class="btn btn-danger" @onclick="LeaveRoom">Leave Room</button>
         }
     </div>
-    <button class="btn btn-outline-secondary settings-toggle" @onclick="ToggleSettings">
-        @(settingsVisible ? "▲" : "▼")
-    </button>
+    <Tab Class="settings-tab" IsOpen="settingsVisible" OnToggle="ToggleSettings" Vertical="true" />
 </div>
 
 <div class="timer-display">Time: @elapsed.ToString(@"hh\:mm\:ss")</div>
@@ -48,7 +46,5 @@
             }
         </ul>
     </div>
-    <button class="btn btn-outline-secondary user-toggle" @onclick="ToggleUserList">
-        @(userListVisible ? "▲" : "▼")
-    </button>
+    <Tab Class="user-tab" IsOpen="userListVisible" OnToggle="ToggleUserList" Vertical="true" />
 </div>
