@@ -25,8 +25,8 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     private string selectedBackground = "#EFECE6";
     private bool scriptLoaded;
     private bool joined;
-    private bool settingsVisible = true;
-    private bool userListVisible = true;
+    private bool settingsVisible = false;
+    private bool userListVisible = false;
     private List<string> users = new();
     private DotNetObjectReference<PuzzleGame>? objRef;
     private readonly Stopwatch stopwatch = new();
@@ -40,6 +40,14 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         {
             try
             {
+                var width = await JS.InvokeAsync<int>("eval", "window.innerWidth");
+                if (width >= 992)
+                {
+                    settingsVisible = true;
+                    userListVisible = true;
+                    StateHasChanged();
+                }
+
                 await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
                 objRef = DotNetObjectReference.Create(this);
                 await JS.InvokeVoidAsync("registerUserListHandler", objRef);
