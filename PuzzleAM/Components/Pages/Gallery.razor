@@ -1,6 +1,7 @@
 @page "/gallery"
 @rendermode InteractiveServer
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext Db
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -23,7 +24,7 @@ else
             <div class="puzzle-item">
                 <img src="@p.ImageDataUrl" alt="Completed puzzle" />
                 <div>Pieces: @p.PieceCount</div>
-                <div>Time: @p.TimeToComplete.ToString(@"hh\\:mm\\:ss")</div>
+                <div>Time: @p.TimeToComplete.ToString(@"hh\:mm\:ss")</div>
             </div>
         }
     </div>
