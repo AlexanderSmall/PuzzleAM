@@ -584,6 +584,17 @@ window.login = async function (token, model) {
     return response.ok;
 };
 
+window.logout = async function (token) {
+    const response = await fetch('/logout', {
+        method: 'POST',
+        headers: {
+            'RequestVerificationToken': token
+        },
+        credentials: 'include'
+    });
+    return response.ok;
+};
+
 window.restartHubConnection = async function () {
     if (hubConnection) {
         try {
