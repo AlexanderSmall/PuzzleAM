@@ -275,6 +275,7 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         container.classList.add('puzzle-container');
         container.innerHTML = '';
 
+        // Size the container to fill the viewport
         const containerRect = container.getBoundingClientRect();
         const availableWidth = window.innerWidth - containerRect.left;
         const availableHeight = window.innerHeight - containerRect.top;
@@ -284,20 +285,36 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
 
         const containerWidth = container.clientWidth;
         const containerHeight = container.clientHeight;
-        const isMobile = isMobileDevice();
-        const widthFactor = isMobile ? 0.95 : 0.5;
-        const heightFactor = isMobile ? 0.95 : 0.5;
-        const targetWidth = containerWidth * widthFactor;
-        const targetHeight = containerHeight * heightFactor;
-        const scale = Math.min(targetWidth / img.width, targetHeight / img.height);
-        const scaledWidth = img.width * scale;
-        const scaledHeight = img.height * scale;
 
-        const pieceWidth = scaledWidth / cols;
-        const pieceHeight = scaledHeight / rows;
+        // Scale the puzzle to take up the full container while keeping every
+        // puzzle piece visible on-screen. We first fit the image to the
+        // container, then account for the extra offset around each piece and
+        // shrink again if necessary.
+        let scale = Math.min(containerWidth / img.width, containerHeight / img.height);
+        let scaledWidth = img.width * scale;
+        let scaledHeight = img.height * scale;
+        let pieceWidth = scaledWidth / cols;
+        let pieceHeight = scaledHeight / rows;
+        let offset = Math.min(pieceWidth, pieceHeight) / 4;
+
+        let totalWidth = scaledWidth + offset * 2;
+        let totalHeight = scaledHeight + offset * 2;
+        if (totalWidth > containerWidth || totalHeight > containerHeight) {
+            const widthRatio = containerWidth / totalWidth;
+            const heightRatio = containerHeight / totalHeight;
+            const adjustment = Math.min(widthRatio, heightRatio);
+            scale *= adjustment;
+            scaledWidth *= adjustment;
+            scaledHeight *= adjustment;
+            pieceWidth = scaledWidth / cols;
+            pieceHeight = scaledHeight / rows;
+            offset = Math.min(pieceWidth, pieceHeight) / 4;
+            totalWidth = scaledWidth + offset * 2;
+            totalHeight = scaledHeight + offset * 2;
+        }
+
         const srcPieceWidth = img.width / cols;
         const srcPieceHeight = img.height / rows;
-        const offset = Math.min(pieceWidth, pieceHeight) / 4;
         const srcOffsetX = offset / scale;
         const srcOffsetY = offset / scale;
 
