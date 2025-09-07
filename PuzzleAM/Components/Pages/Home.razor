@@ -98,12 +98,12 @@
     private string? registerMessage;
     private string? loginError;
     private string? currentUsername;
-    [CascadingParameter]
-    private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
+    [Inject]
+    private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthenticationStateTask;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         if (user.Identity?.IsAuthenticated == true)
         {
