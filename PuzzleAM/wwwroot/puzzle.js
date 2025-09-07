@@ -2,6 +2,8 @@ window.pieces = [];
 window.pieceIndex = {};
 // Track the highest z-index so groups can be brought to the front
 window.maxZ = 1;
+// Offset applied around the workspace for puzzle pieces
+window.workspaceOffset = 0;
 let hubConnection;
 let currentRoomCode = null;
 const locallyMovedPieces = new Set();
@@ -82,11 +84,11 @@ async function startHubConnection() {
         const piece = window.pieces[data.id];
         if (piece) {
             if (typeof window.boardLeft === 'number' && typeof window.boardWidth === 'number') {
-                piece.style.left = (window.boardLeft + data.left * window.boardWidth) + "px";
-                piece.style.top = (window.boardTop + data.top * window.boardHeight) + "px";
+                piece.style.left = (window.boardLeft + data.left * window.boardWidth - window.workspaceOffset) + "px";
+                piece.style.top = (window.boardTop + data.top * window.boardHeight - window.workspaceOffset) + "px";
             } else {
-                piece.style.left = data.left + "px";
-                piece.style.top = data.top + "px";
+                piece.style.left = (data.left - window.workspaceOffset) + "px";
+                piece.style.top = (data.top - window.workspaceOffset) + "px";
             }
             if (data.groupId != null) {
                 piece.dataset.groupId = data.groupId;
@@ -151,8 +153,8 @@ async function startHubConnection() {
 function sendMove(piece) {
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected &&
         typeof window.boardLeft === 'number' && typeof window.boardWidth === 'number') {
-        const left = Math.round(parseFloat(piece.style.left));
-        const top = Math.round(parseFloat(piece.style.top));
+        const left = Math.round(parseFloat(piece.style.left) + window.workspaceOffset);
+        const top = Math.round(parseFloat(piece.style.top) + window.workspaceOffset);
         const payload = {
             id: parseInt(piece.dataset.pieceId),
             left: (left - window.boardLeft) / window.boardWidth,
@@ -277,7 +279,7 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         piecesLayout.forEach(p => pieceMap[p.id] = p);
 
         const container = document.getElementById(containerId);
-        container.classList.add('puzzle-container');
+        container.classList.add('puzzle-viewport');
         container.innerHTML = '';
 
         // Size the container to fill the viewport using visualViewport if available
@@ -320,6 +322,17 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
             totalHeight = scaledHeight + offset * 2;
         }
 
+        const workspace = document.createElement('div');
+        workspace.classList.add('puzzle-workspace');
+        workspace.style.width = (containerWidth + offset * 2) + 'px';
+        workspace.style.height = (containerHeight + offset * 2) + 'px';
+        workspace.style.padding = offset + 'px';
+        workspace.style.left = '0';
+        workspace.style.top = '0';
+        workspace.style.transform = `translate(${-offset}px, ${-offset}px)`;
+        container.appendChild(workspace);
+        window.workspaceOffset = offset;
+
         const srcPieceWidth = img.width / cols;
         const srcPieceHeight = img.height / rows;
         const srcOffsetX = offset / scale;
@@ -340,7 +353,7 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         board.style.top = boardTop + 'px';
         board.style.width = scaledWidth + 'px';
         board.style.height = scaledHeight + 'px';
-        container.appendChild(board);
+        workspace.appendChild(board);
 
         window.puzzleRows = rows;
         window.puzzleCols = cols;
@@ -369,8 +382,8 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
 
                 const pieceIndex = window.pieces.length;
                 const p = pieceMap[pieceIndex] || { left: 0, top: 0, groupId: pieceIndex };
-                piece.style.left = boardLeft + p.left * scaledWidth + 'px';
-                piece.style.top = boardTop + p.top * scaledHeight + 'px';
+                piece.style.left = boardLeft + p.left * scaledWidth - window.workspaceOffset + 'px';
+                piece.style.top = boardTop + p.top * scaledHeight - window.workspaceOffset + 'px';
 
                 if (window.currentLayout) {
                     window.currentLayout.pieces[pieceIndex] = {
@@ -381,8 +394,8 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
                     };
                 }
 
-                const correctX = boardLeft + x * pieceWidth - offset;
-                const correctY = boardTop + y * pieceHeight - offset;
+                const correctX = boardLeft + x * pieceWidth - window.workspaceOffset;
+                const correctY = boardTop + y * pieceHeight - window.workspaceOffset;
                 piece.dataset.correctX = correctX;
                 piece.dataset.correctY = correctY;
                 piece.dataset.width = pieceWidth;
@@ -411,10 +424,10 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
                     piece.height
                 );
                 ctx.restore();
-                container.appendChild(piece);
+                workspace.appendChild(piece);
                 window.pieces.push(piece);
                 window.pieceIndex[`${y},${x}`] = piece;
-                makeDraggable(piece, container);
+                makeDraggable(piece, workspace);
             }
         }
         updateAllShadows();
@@ -578,8 +591,27 @@ function makeDraggable(el, container) {
         const onMove = (e) => {
             const moveX = (e.clientX ?? e.touches[0].clientX) - containerRect.left - offsetX;
             const moveY = (e.clientY ?? e.touches[0].clientY) - containerRect.top - offsetY;
-            const dx = moveX - lastX;
-            const dy = moveY - lastY;
+            let dx = moveX - lastX;
+            let dy = moveY - lastY;
+
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            piecesToMove.forEach(p => {
+                const left = parseFloat(p.style.left);
+                const top = parseFloat(p.style.top);
+                const w = p.offsetWidth;
+                const h = p.offsetHeight;
+                if (left < minX) minX = left;
+                if (top < minY) minY = top;
+                if (left + w > maxX) maxX = left + w;
+                if (top + h > maxY) maxY = top + h;
+            });
+
+            const workspaceWidth = container.clientWidth - window.workspaceOffset * 2;
+            const workspaceHeight = container.clientHeight - window.workspaceOffset * 2;
+            if (minX + dx < -window.workspaceOffset) dx = -window.workspaceOffset - minX;
+            if (minY + dy < -window.workspaceOffset) dy = -window.workspaceOffset - minY;
+            if (maxX + dx > workspaceWidth - window.workspaceOffset) dx = workspaceWidth - window.workspaceOffset - maxX;
+            if (maxY + dy > workspaceHeight - window.workspaceOffset) dy = workspaceHeight - window.workspaceOffset - maxY;
 
             piecesToMove.forEach(p => {
                 p.style.left = (parseFloat(p.style.left) + dx) + 'px';
@@ -587,8 +619,8 @@ function makeDraggable(el, container) {
                 sendMove(p);
             });
 
-            lastX = moveX;
-            lastY = moveY;
+            lastX += dx;
+            lastY += dy;
         };
 
         const stop = () => {
