@@ -26,6 +26,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     private bool scriptLoaded;
     private bool joined;
     private bool settingsVisible = true;
+    private bool userListVisible = true;
     private List<string> users = new();
     private DotNetObjectReference<PuzzleGame>? objRef;
     private readonly Stopwatch stopwatch = new();
@@ -130,6 +131,11 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     private void ToggleSettings()
     {
         settingsVisible = !settingsVisible;
+    }
+
+    private void ToggleUserList()
+    {
+        userListVisible = !userListVisible;
     }
 
     [JSInvokable]
