@@ -558,6 +558,32 @@ window.closeModal = function (id) {
     modal.hide();
 };
 
+window.register = async function (token, model) {
+    const response = await fetch('/register', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': token
+        },
+        body: JSON.stringify(model),
+        credentials: 'include'
+    });
+    return response.ok;
+};
+
+window.login = async function (token, model) {
+    const response = await fetch('/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': token
+        },
+        body: JSON.stringify(model),
+        credentials: 'include'
+    });
+    return response.ok;
+};
+
 window.restartHubConnection = async function () {
     if (hubConnection) {
         try {
