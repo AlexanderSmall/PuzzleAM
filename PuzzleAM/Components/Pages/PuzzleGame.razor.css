@@ -38,3 +38,21 @@
     margin-bottom: 1rem;
     text-align: center;
 }
+
+@media (max-width: 768px) {
+    .user-panel {
+        width: 80vw;
+        left: 50%;
+        right: auto;
+        top: 10vh;
+        transform: translateX(-50%);
+        z-index: 1000;
+    }
+
+    .settings-toggle {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        z-index: 1001;
+    }
+}
