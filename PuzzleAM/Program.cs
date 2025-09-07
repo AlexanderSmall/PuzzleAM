@@ -39,6 +39,15 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.EnsureCreated();
+    db.Database.ExecuteSqlRaw(
+        @"CREATE TABLE IF NOT EXISTS CompletedPuzzles (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserId TEXT NOT NULL,
+            UserName TEXT NULL,
+            ImageDataUrl TEXT NOT NULL,
+            PieceCount INTEGER NOT NULL,
+            TimeToComplete TEXT NOT NULL
+        );");
 }
 
 // Configure the HTTP request pipeline.
