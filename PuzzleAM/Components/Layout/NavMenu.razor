@@ -4,7 +4,7 @@
     </div>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" @bind="IsExpanded" />
 
     <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
         <nav class="nav flex-column">
@@ -21,3 +21,10 @@
         </nav>
     </div>
 
+@code {
+    [Parameter]
+    public bool IsExpanded { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsExpandedChanged { get; set; }
+}
