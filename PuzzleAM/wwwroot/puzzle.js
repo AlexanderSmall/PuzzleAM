@@ -8,6 +8,11 @@ const locallyMovedPieces = new Set();
 // Flag to ensure puzzle completion is only processed once
 window.puzzleCompleted = false;
 
+// Persist the current puzzle layout and image so it can be recreated later
+window.currentLayout = null;
+window.currentImageDataUrl = null;
+window.currentContainerId = null;
+
 // Load audio assets for various game events
 const sounds = {
     start: new Audio('/audio/Start.wav'),
@@ -77,6 +82,17 @@ async function startHubConnection() {
             if (data.groupId != null) {
                 piece.dataset.groupId = data.groupId;
             }
+            if (window.currentLayout) {
+                window.currentLayout.pieces = window.currentLayout.pieces || [];
+                const stored = { id: data.id, left: data.left, top: data.top };
+                if (data.groupId != null) {
+                    stored.groupId = data.groupId;
+                } else {
+                    const g = parseInt(piece.dataset.groupId);
+                    if (!isNaN(g)) stored.groupId = g;
+                }
+                window.currentLayout.pieces[data.id] = stored;
+            }
             updatePieceShadow(piece);
 
             const row = parseInt(piece.dataset.row);
@@ -137,12 +153,32 @@ function sendMove(piece) {
         if (Number.isFinite(groupId)) {
             payload.groupId = groupId;
         }
+        if (window.currentLayout) {
+            window.currentLayout.pieces = window.currentLayout.pieces || [];
+            window.currentLayout.pieces[payload.id] = {
+                id: payload.id,
+                left: payload.left,
+                top: payload.top,
+                groupId: payload.groupId
+            };
+        }
         hubConnection.invoke("MovePiece", currentRoomCode, payload).catch(err => console.error(err));
     }
 }
 
 // Start the SignalR connection immediately instead of waiting for the window load event
 startHubConnection();
+
+// Rebuild puzzle on window resize using the stored layout (debounced)
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        if (window.currentImageDataUrl && window.currentLayout && window.currentContainerId) {
+            window.createPuzzle(window.currentImageDataUrl, window.currentContainerId, window.currentLayout);
+        }
+    }, 200);
+});
 
 window.setRoomCode = function (code) {
     currentRoomCode = code;
@@ -206,6 +242,18 @@ window.setBackgroundColor = function (color) {
 
 window.createPuzzle = function (imageDataUrl, containerId, layout) {
     window.puzzleCompleted = false;
+    window.currentImageDataUrl = imageDataUrl;
+    window.currentContainerId = containerId;
+    window.currentLayout = {
+        rows: layout.rows,
+        columns: layout.columns,
+        pieces: []
+    };
+    if (layout.pieces) {
+        layout.pieces.forEach(p => {
+            window.currentLayout.pieces[p.id] = { ...p };
+        });
+    }
     const img = new Image();
     img.onload = function () {
         const rows = layout.rows;
@@ -281,6 +329,15 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
                 const p = pieceMap[pieceIndex] || { left: 0, top: 0, groupId: pieceIndex };
                 piece.style.left = boardLeft + p.left * scaledWidth + 'px';
                 piece.style.top = boardTop + p.top * scaledHeight + 'px';
+
+                if (window.currentLayout) {
+                    window.currentLayout.pieces[pieceIndex] = {
+                        id: pieceIndex,
+                        left: p.left,
+                        top: p.top,
+                        groupId: p.groupId !== undefined ? p.groupId : pieceIndex
+                    };
+                }
 
                 const correctX = boardLeft + x * pieceWidth - offset;
                 const correctY = boardTop + y * pieceHeight - offset;
