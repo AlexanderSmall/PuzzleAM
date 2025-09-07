@@ -1,4 +1,5 @@
 window.pieces = [];
+window.pieceIndex = {};
 // Track the highest z-index so groups can be brought to the front
 window.maxZ = 1;
 let hubConnection;
@@ -242,6 +243,7 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         const vTabs = Array.from({ length: rows }, () => Array(cols));
 
         window.pieces = [];
+        window.pieceIndex = {};
 
         for (let y = 0; y < rows; y++) {
             for (let x = 0; x < cols; x++) {
@@ -290,6 +292,7 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
                 ctx.restore();
                 container.appendChild(piece);
                 window.pieces.push(piece);
+                window.pieceIndex[`${y},${x}`] = piece;
                 makeDraggable(piece, container);
             }
         }
@@ -460,11 +463,29 @@ function makeDraggable(el, container) {
     el.addEventListener('touchstart', startDrag);
 }
 
+function getAdjacentPieces(piece) {
+    const row = parseInt(piece.dataset.row);
+    const col = parseInt(piece.dataset.col);
+    const neighbors = [];
+    const positions = [
+        [row - 1, col],
+        [row + 1, col],
+        [row, col - 1],
+        [row, col + 1]
+    ];
+    for (const [r, c] of positions) {
+        const neighbor = window.pieceIndex[`${r},${c}`];
+        if (neighbor) {
+            neighbors.push(neighbor);
+        }
+    }
+    return neighbors;
+}
+
 function snapPiece(el) {
     const threshold = 15;
     const groupId = parseInt(el.dataset.groupId);
     const groupPieces = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
-    const epsilon = 0.1;
 
     /*
     // Snap to correct location if the dragged piece is close
@@ -492,18 +513,13 @@ function snapPiece(el) {
         const pieceCorrectY = parseFloat(piece.dataset.correctY);
         const pieceCurrentX = parseFloat(piece.style.left);
         const pieceCurrentY = parseFloat(piece.style.top);
-        const pieceWidth = parseFloat(piece.dataset.width);
-        const pieceHeight = parseFloat(piece.dataset.height);
 
-        for (const neighbor of window.pieces) {
+        const neighbors = getAdjacentPieces(piece);
+        for (const neighbor of neighbors) {
             if (parseInt(neighbor.dataset.groupId) === groupId) continue;
 
             const expectedDx = parseFloat(neighbor.dataset.correctX) - pieceCorrectX;
             const expectedDy = parseFloat(neighbor.dataset.correctY) - pieceCorrectY;
-
-            const isHorizontalNeighbor = Math.abs(Math.abs(expectedDx) - pieceWidth) < epsilon && Math.abs(expectedDy) < epsilon;
-            const isVerticalNeighbor = Math.abs(Math.abs(expectedDy) - pieceHeight) < epsilon && Math.abs(expectedDx) < epsilon;
-            if (!isHorizontalNeighbor && !isVerticalNeighbor) continue;
 
             const actualDx = parseFloat(neighbor.style.left) - pieceCurrentX;
             const actualDy = parseFloat(neighbor.style.top) - pieceCurrentY;
