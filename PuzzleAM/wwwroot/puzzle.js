@@ -183,6 +183,12 @@ let resizeTimeout;
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
+        if (window.currentContainerId) {
+            const container = document.getElementById(window.currentContainerId);
+            if (container) {
+                updateContainerDimensions(container);
+            }
+        }
         if (window.currentImageDataUrl && window.currentLayout && window.currentContainerId) {
             window.createPuzzle(window.currentImageDataUrl, window.currentContainerId, window.currentLayout);
         }
@@ -249,6 +255,11 @@ window.setBackgroundColor = function (color) {
     }
 };
 
+function updateContainerDimensions(container) {
+    container.style.width = window.innerWidth + 'px';
+    container.style.height = (document.documentElement.clientHeight || window.innerHeight) + 'px';
+}
+
 window.createPuzzle = function (imageDataUrl, containerId, layout) {
     window.puzzleCompleted = false;
     window.currentImageDataUrl = imageDataUrl;
@@ -275,12 +286,7 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         container.classList.add('puzzle-container');
         container.innerHTML = '';
 
-        const containerRect = container.getBoundingClientRect();
-        const availableWidth = window.innerWidth - containerRect.left;
-        const availableHeight = window.innerHeight - containerRect.top;
-
-        container.style.width = availableWidth + 'px';
-        container.style.height = availableHeight + 'px';
+        updateContainerDimensions(container);
 
         const containerWidth = container.clientWidth;
         const containerHeight = container.clientHeight;
