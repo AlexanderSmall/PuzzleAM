@@ -284,9 +284,8 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
 
         const containerWidth = container.clientWidth;
         const containerHeight = container.clientHeight;
-        const isMobile = isMobileDevice();
-        const widthFactor = isMobile ? 0.95 : 0.5;
-        const heightFactor = isMobile ? 0.95 : 0.5;
+        const widthFactor = 0.95;
+        const heightFactor = 0.95;
         const targetWidth = containerWidth * widthFactor;
         const targetHeight = containerHeight * heightFactor;
         const scale = Math.min(targetWidth / img.width, targetHeight / img.height);
