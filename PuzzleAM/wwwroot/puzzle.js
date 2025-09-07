@@ -30,6 +30,15 @@ window.registerPuzzleEventHandler = function (dotNetHelper) {
     puzzleEventHandler = dotNetHelper;
 };
 
+function isMobileDevice() {
+    if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') {
+        return navigator.userAgentData.mobile;
+    }
+    const ua = navigator.userAgent || '';
+    const mobileRegex = /Mobi|Android|iP(hone|ad|od)|BlackBerry|IEMobile|Opera Mini/i;
+    return mobileRegex.test(ua) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
+}
+
 function playStartSound() {
     try {
         sounds.start.currentTime = 0;
@@ -275,9 +284,9 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
 
         const containerWidth = container.clientWidth;
         const containerHeight = container.clientHeight;
-
-        const widthFactor = window.innerWidth <= 768 ? 0.95 : 0.5;
-        const heightFactor = window.innerWidth <= 768 ? 0.95 : 0.5;
+        const isMobile = isMobileDevice();
+        const widthFactor = isMobile ? 0.95 : 0.5;
+        const heightFactor = isMobile ? 0.95 : 0.5;
         const targetWidth = containerWidth * widthFactor;
         const targetHeight = containerHeight * heightFactor;
         const scale = Math.min(targetWidth / img.width, targetHeight / img.height);
