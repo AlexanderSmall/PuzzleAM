@@ -325,8 +325,14 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         const srcOffsetX = offset / scale;
         const srcOffsetY = offset / scale;
 
-        const boardLeft = (containerWidth - scaledWidth) / 2;
-        const boardTop = (containerHeight - scaledHeight) / 2;
+        let boardLeft = (containerWidth - scaledWidth) / 2;
+        let boardTop = (containerHeight - scaledHeight) / 2;
+
+        // Ensure the full puzzle is visible by keeping the board at least an
+        // offset away from the container edges. This prevents edge pieces from
+        // being clipped when the available space is tight.
+        boardLeft = Math.max(boardLeft, offset);
+        boardTop = Math.max(boardTop, offset);
 
         const board = document.createElement('div');
         board.classList.add('puzzle-board');
