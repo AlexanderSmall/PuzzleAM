@@ -38,12 +38,17 @@
 
 <div id="puzzleContainer"></div>
 
-<div class="user-panel">
-    <h5>Users</h5>
-    <ul>
-        @foreach (var u in users)
-        {
-            <li>@u</li>
-        }
-    </ul>
+<div class="user-wrapper">
+    <div class="user-panel @(userListVisible ? "open" : "closed")">
+        <h5>Users</h5>
+        <ul>
+            @foreach (var u in users)
+            {
+                <li>@u</li>
+            }
+        </ul>
+    </div>
+    <button class="btn btn-outline-secondary user-toggle" @onclick="ToggleUserList">
+        @(userListVisible ? "▲" : "▼")
+    </button>
 </div>
