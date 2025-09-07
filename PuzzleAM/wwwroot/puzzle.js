@@ -5,6 +5,8 @@ window.maxZ = 1;
 let hubConnection;
 let currentRoomCode = null;
 const locallyMovedPieces = new Set();
+// Flag to ensure puzzle completion is only processed once
+window.puzzleCompleted = false;
 
 // Load audio assets for various game events
 const sounds = {
@@ -203,6 +205,7 @@ window.setBackgroundColor = function (color) {
 };
 
 window.createPuzzle = function (imageDataUrl, containerId, layout) {
+    window.puzzleCompleted = false;
     const img = new Image();
     img.onload = function () {
         const rows = layout.rows;
@@ -592,10 +595,11 @@ function snapPiece(el) {
 }
 
 function checkCompletion() {
-    if (window.pieces.length === 0) return;
+    if (window.puzzleCompleted || window.pieces.length === 0) return;
     const groupId = window.pieces[0].dataset.groupId;
     const solved = window.pieces.every(p => p.dataset.groupId === groupId);
     if (solved) {
+        window.puzzleCompleted = true;
         console.log('Puzzle completed!');
         playApplauseSound();
         if (puzzleEventHandler) {
