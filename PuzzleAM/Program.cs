@@ -83,6 +83,12 @@ app.MapPost("/login", async (SignInManager<IdentityUser> signInManager, LoginReq
     return result.Succeeded ? Results.Ok() : Results.BadRequest("Invalid login attempt");
 });
 
+app.MapPost("/logout", async (SignInManager<IdentityUser> signInManager) =>
+{
+    await signInManager.SignOutAsync();
+    return Results.Ok();
+});
+
 app.MapGet("/user", (ClaimsPrincipal user) =>
     user.Identity?.IsAuthenticated == true
         ? Results.Ok(user.Identity.Name)

@@ -18,6 +18,10 @@
     {
         <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#loginModal">Login</button>
     }
+    else
+    {
+        <button class="btn btn-outline-secondary" @onclick="Logout">Sign out</button>
+    }
 </div>
 
 <h1 class="text-center fw-bold mt-5">Puzzle AM</h1>
@@ -172,6 +176,17 @@
         else
         {
             loginError = "Login failed";
+        }
+    }
+
+    private async Task Logout()
+    {
+        var token = Antiforgery.GetAntiforgeryToken();
+        var success = await JS.InvokeAsync<bool>("logout", token.Value);
+        if (success)
+        {
+            currentUsername = null;
+            await JS.InvokeVoidAsync("restartHubConnection");
         }
     }
 
