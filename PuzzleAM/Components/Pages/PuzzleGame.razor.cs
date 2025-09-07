@@ -36,12 +36,15 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
                 if (!joined && !string.IsNullOrEmpty(RoomCode))
                 {
                     var state = await JS.InvokeAsync<PuzzleState?>("joinRoom", RoomCode);
-                    if (state is not null && !string.IsNullOrEmpty(state.ImageDataUrl))
+                    if (state is not null)
                     {
-                        imageDataUrl = state.ImageDataUrl;
-                        selectedPieces = state.PieceCount;
+                        if (!string.IsNullOrEmpty(state.ImageDataUrl))
+                        {
+                            imageDataUrl = state.ImageDataUrl;
+                            selectedPieces = state.PieceCount;
+                        }
+                        joined = true;
                     }
-                    joined = true;
                 }
             }
             catch (Exception ex)

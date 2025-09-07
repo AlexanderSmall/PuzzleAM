@@ -121,7 +121,8 @@ function sendMove(piece) {
     }
 }
 
-window.addEventListener("load", startHubConnection);
+// Start the SignalR connection immediately instead of waiting for the window load event
+startHubConnection();
 
 window.setRoomCode = function (code) {
     currentRoomCode = code;
