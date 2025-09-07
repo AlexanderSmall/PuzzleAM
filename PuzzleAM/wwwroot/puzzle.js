@@ -395,7 +395,7 @@ function updatePieceShadow(piece) {
     const pieceHeight = parseFloat(piece.dataset.height);
 
     const shadows = [];
-    const threshold = 5;
+    const threshold = Math.min(pieceWidth, pieceHeight) * 0.05;
 
     const bottomNeighbor = row < window.puzzleRows - 1 ? window.pieces[(row + 1) * window.puzzleCols + col] : null;
     if (bottomNeighbor && parseInt(bottomNeighbor.dataset.groupId) === groupId) {
