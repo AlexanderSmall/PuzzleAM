@@ -274,8 +274,10 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
                 piece.dataset.col = x;
 
                 const ctx = piece.getContext('2d');
+                ctx.imageSmoothingEnabled = false;
                 ctx.clearRect(0, 0, piece.width, piece.height);
                 ctx.save();
+                ctx.translate(0.5, 0.5);
                 drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, offset);
                 ctx.clip();
                 ctx.drawImage(
