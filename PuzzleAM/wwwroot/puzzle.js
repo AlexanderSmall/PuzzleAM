@@ -178,16 +178,22 @@ function sendMove(piece) {
 // Start the SignalR connection immediately instead of waiting for the window load event
 startHubConnection();
 
-// Rebuild puzzle on window resize using the stored layout (debounced)
+// Rebuild puzzle when the viewport changes using the stored layout (debounced)
 let resizeTimeout;
-window.addEventListener('resize', () => {
+function schedulePuzzleRebuild() {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
         if (window.currentImageDataUrl && window.currentLayout && window.currentContainerId) {
             window.createPuzzle(window.currentImageDataUrl, window.currentContainerId, window.currentLayout);
         }
     }, 200);
-});
+}
+
+window.addEventListener('resize', schedulePuzzleRebuild);
+window.addEventListener('orientationchange', schedulePuzzleRebuild);
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', schedulePuzzleRebuild);
+}
 
 window.setRoomCode = function (code) {
     currentRoomCode = code;
