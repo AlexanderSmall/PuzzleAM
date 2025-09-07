@@ -36,7 +36,10 @@
             </div>
             <div class="modal-body">
                 <InputText @bind-Value="registerModel.Username" class="form-control" placeholder="Username" />
-                <InputText @bind-Value="registerModel.Password" type="password" class="form-control mt-2" placeholder="Password" />
+                <div class="input-group mt-2">
+                    <InputText @bind-Value="registerModel.Password" type="password" class="form-control" placeholder="Password" />
+                    <span class="input-group-text" title="Password requirements:\n- At least 6 characters\n- At least one digit\n- At least one lowercase letter\n- At least one uppercase letter\n- At least one non-alphanumeric character\n- At least one unique character">&#9432;</span>
+                </div>
                 <InputText @bind-Value="registerModel.ConfirmPassword" type="password" class="form-control mt-2" placeholder="Confirm Password" />
                 @if (!string.IsNullOrEmpty(registerError))
                 {
