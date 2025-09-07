@@ -7,7 +7,6 @@
 @inject HttpClient Http
 @inject AntiforgeryStateProvider Antiforgery
 @using Microsoft.AspNetCore.Components.Forms
-@using System.Net.Http.Json
 
 <div class="position-absolute top-0 end-0 p-3 d-flex align-items-center">
     @if (!string.IsNullOrEmpty(currentUsername))
@@ -143,13 +142,8 @@
             return;
         }
         var token = Antiforgery.GetAntiforgeryToken();
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/register")
-        {
-            Content = JsonContent.Create(registerModel)
-        };
-        request.Headers.Add("RequestVerificationToken", token.Value);
-        var response = await Http.SendAsync(request);
-        if (response.IsSuccessStatusCode)
+        var success = await JS.InvokeAsync<bool>("register", token.Value, registerModel);
+        if (success)
         {
             registerError = null;
             registerMessage = "Account created successfully";
@@ -166,13 +160,8 @@
     private async Task Login()
     {
         var token = Antiforgery.GetAntiforgeryToken();
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/login")
-        {
-            Content = JsonContent.Create(loginModel)
-        };
-        request.Headers.Add("RequestVerificationToken", token.Value);
-        var response = await Http.SendAsync(request);
-        if (response.IsSuccessStatusCode)
+        var success = await JS.InvokeAsync<bool>("login", token.Value, loginModel);
+        if (success)
         {
             loginError = null;
             currentUsername = loginModel.Username;
