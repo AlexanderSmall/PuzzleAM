@@ -87,7 +87,7 @@ h1:focus {
        scrollbars so the entire page fits within the viewport */
     overflow: hidden;
     width: 100vw;
-    height: 100vh;
+    height: 100dvh;
 }
 
 .puzzle-board {
