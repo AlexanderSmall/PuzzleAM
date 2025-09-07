@@ -109,10 +109,12 @@ async function startHubConnection() {
 function sendMove(piece) {
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected &&
         typeof window.boardLeft === 'number' && typeof window.boardWidth === 'number') {
+        const left = Math.round(parseFloat(piece.style.left));
+        const top = Math.round(parseFloat(piece.style.top));
         const payload = {
             id: parseInt(piece.dataset.pieceId),
-            left: (parseFloat(piece.style.left) - window.boardLeft) / window.boardWidth,
-            top: (parseFloat(piece.style.top) - window.boardTop) / window.boardHeight
+            left: (left - window.boardLeft) / window.boardWidth,
+            top: (top - window.boardTop) / window.boardHeight
         };
         const groupId = parseInt(piece.dataset.groupId);
         if (Number.isFinite(groupId)) {
@@ -538,8 +540,10 @@ function snapPiece(el) {
 
                 if (Math.abs(diffX) < threshold && Math.abs(diffY) < threshold) {
                     groupPieces.forEach(p => {
-                        p.style.left = (parseFloat(p.style.left) + diffX) + 'px';
-                        p.style.top = (parseFloat(p.style.top) + diffY) + 'px';
+                        const newLeft = Math.round(parseFloat(p.style.left) + diffX);
+                        const newTop = Math.round(parseFloat(p.style.top) + diffY);
+                        p.style.left = newLeft + 'px';
+                        p.style.top = newTop + 'px';
                         sendMove(p);
                     });
 
