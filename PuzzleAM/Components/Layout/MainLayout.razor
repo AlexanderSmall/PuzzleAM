@@ -3,7 +3,7 @@
 
 <div class="page">
     <div class="sidebar @(navOpen ? string.Empty : "closed")">
-        <NavMenu />
+        <NavMenu @bind-IsExpanded="navOpen" />
     </div>
     <Tab Class="nav-tab" IsOpen="navOpen" OnToggle="ToggleNav" style="@NavTabStyle" />
 
