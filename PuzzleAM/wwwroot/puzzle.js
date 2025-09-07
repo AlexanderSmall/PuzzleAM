@@ -278,6 +278,26 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         const pieceMap = {};
         piecesLayout.forEach(p => pieceMap[p.id] = p);
 
+        // Determine the bounding box of all pieces in the layout. This allows
+        // us to scale the puzzle so that every piece—even ones scattered
+        // outside of the solved board area—remains on-screen.
+        const pieceNormWidth = 1 / cols;
+        const pieceNormHeight = 1 / rows;
+        let minLeft = 0;
+        let minTop = 0;
+        let maxRight = 1;
+        let maxBottom = 1;
+        piecesLayout.forEach(p => {
+            const left = p.left ?? 0;
+            const top = p.top ?? 0;
+            if (left < minLeft) minLeft = left;
+            if (top < minTop) minTop = top;
+            const right = left + pieceNormWidth;
+            const bottom = top + pieceNormHeight;
+            if (right > maxRight) maxRight = right;
+            if (bottom > maxBottom) maxBottom = bottom;
+        });
+
         const container = document.getElementById(containerId);
         container.classList.add('puzzle-viewport');
         container.innerHTML = '';
@@ -295,19 +315,26 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         const containerWidth = container.clientWidth;
         const containerHeight = container.clientHeight;
 
-        // Scale the puzzle to take up the full container while keeping every
-        // puzzle piece visible on-screen. We first fit the image to the
-        // container, then account for the extra offset around each piece and
-        // shrink again if necessary.
-        let scale = Math.min(containerWidth / img.width, containerHeight / img.height);
+        // Scale the puzzle so that the bounding box of all pieces fits within
+        // the available viewport. This accounts for pieces that may start
+        // scattered away from the board.
+        const boundingNormalizedWidth = maxRight - minLeft;
+        const boundingNormalizedHeight = maxBottom - minTop;
+
+        let scale = Math.min(
+            containerWidth / (img.width * boundingNormalizedWidth),
+            containerHeight / (img.height * boundingNormalizedHeight)
+        );
         let scaledWidth = img.width * scale;
         let scaledHeight = img.height * scale;
         let pieceWidth = scaledWidth / cols;
         let pieceHeight = scaledHeight / rows;
         let offset = Math.min(pieceWidth, pieceHeight) / 4;
 
-        let totalWidth = scaledWidth + offset * 2;
-        let totalHeight = scaledHeight + offset * 2;
+        let boundingWidth = scaledWidth * boundingNormalizedWidth;
+        let boundingHeight = scaledHeight * boundingNormalizedHeight;
+        let totalWidth = boundingWidth + offset * 2;
+        let totalHeight = boundingHeight + offset * 2;
         if (totalWidth > containerWidth || totalHeight > containerHeight) {
             const widthRatio = containerWidth / totalWidth;
             const heightRatio = containerHeight / totalHeight;
@@ -318,8 +345,10 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
             pieceWidth = scaledWidth / cols;
             pieceHeight = scaledHeight / rows;
             offset = Math.min(pieceWidth, pieceHeight) / 4;
-            totalWidth = scaledWidth + offset * 2;
-            totalHeight = scaledHeight + offset * 2;
+            boundingWidth = scaledWidth * boundingNormalizedWidth;
+            boundingHeight = scaledHeight * boundingNormalizedHeight;
+            totalWidth = boundingWidth + offset * 2;
+            totalHeight = boundingHeight + offset * 2;
         }
 
         const workspace = document.createElement('div');
@@ -338,12 +367,11 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         const srcOffsetX = offset / scale;
         const srcOffsetY = offset / scale;
 
-        let boardLeft = (containerWidth - scaledWidth) / 2;
-        let boardTop = (containerHeight - scaledHeight) / 2;
+        let boardLeft = (containerWidth - boundingWidth) / 2 + offset - minLeft * scaledWidth;
+        let boardTop = (containerHeight - boundingHeight) / 2 + offset - minTop * scaledHeight;
 
-        // Ensure the full puzzle is visible by keeping the board at least an
-        // offset away from the container edges. This prevents edge pieces from
-        // being clipped when the available space is tight.
+        // Ensure the puzzle board itself remains within the visible area even
+        // if all pieces are shifted to one side.
         boardLeft = Math.max(boardLeft, offset);
         boardTop = Math.max(boardTop, offset);
 
