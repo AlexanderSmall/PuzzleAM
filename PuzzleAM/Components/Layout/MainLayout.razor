@@ -1,11 +1,11 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@inject IJSRuntime JS
 
 <div class="page">
-    <input type="checkbox" id="nav-toggle" class="nav-toggle" checked />
-    <div class="sidebar">
+    <div class="sidebar @(navOpen ? string.Empty : "closed")">
         <NavMenu />
     </div>
-    <label for="nav-toggle" class="nav-tab"></label>
+    <Tab Class="nav-tab" IsOpen="navOpen" OnToggle="ToggleNav" style="@NavTabStyle" />
 
     <main>
         <article class="content px-4">
@@ -14,16 +14,32 @@
     </main>
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        if (window.innerWidth < 992) {
-            document.getElementById('nav-toggle').checked = false;
-        }
-    });
-</script>
-
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private bool navOpen = true;
+
+    private string NavTabStyle => $"position:absolute;top:1rem;left:{(navOpen ? "250px" : "0")};transition:left 0.3s ease;z-index:1;";
+
+    private void ToggleNav()
+    {
+        navOpen = !navOpen;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var width = await JS.InvokeAsync<int>("eval", "window.innerWidth");
+            if (width < 992)
+            {
+                navOpen = false;
+                StateHasChanged();
+            }
+        }
+    }
+}
