@@ -2,9 +2,9 @@
 @rendermode InteractiveServer
 @using PuzzleAM.Model
 @using Microsoft.AspNetCore.Antiforgery
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IJSRuntime JS
 @inject NavigationManager Nav
-@inject HttpClient Http
 @inject AntiforgeryStateProvider Antiforgery
 @using Microsoft.AspNetCore.Components.Forms
 
@@ -94,15 +94,16 @@
     private string? registerMessage;
     private string? loginError;
     private string? currentUsername;
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        var authState = await AuthenticationStateTask;
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
         {
-            currentUsername = await Http.GetStringAsync("/user");
-        }
-        catch
-        {
+            currentUsername = user.Identity.Name;
         }
     }
 
