@@ -31,6 +31,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     private readonly Stopwatch stopwatch = new();
     private Timer? timer;
     private TimeSpan elapsed = TimeSpan.Zero;
+    private bool completionRecorded;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -142,6 +143,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     [JSInvokable]
     public Task PuzzleLoaded()
     {
+        completionRecorded = false;
         stopwatch.Restart();
         elapsed = TimeSpan.Zero;
         timer?.Dispose();
@@ -156,6 +158,11 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     [JSInvokable]
     public async Task PuzzleCompleted()
     {
+        if (completionRecorded)
+        {
+            return;
+        }
+        completionRecorded = true;
         timer?.Dispose();
         if (stopwatch.IsRunning)
         {
