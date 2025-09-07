@@ -44,7 +44,7 @@ function playApplauseSound() {
     }
 }
 
-function startHubConnection() {
+async function startHubConnection() {
     hubConnection = new signalR.HubConnectionBuilder()
         .withUrl("/puzzlehub")
         .withAutomaticReconnect()
@@ -98,7 +98,11 @@ function startHubConnection() {
         }
     });
 
-    hubConnection.start().catch(err => console.error(err));
+    try {
+        await hubConnection.start();
+    } catch (err) {
+        console.error(err);
+    }
 }
 
 function sendMove(piece) {
@@ -551,4 +555,20 @@ window.closeModal = function (id) {
     }
     const modal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
     modal.hide();
+};
+
+window.restartHubConnection = async function () {
+    if (hubConnection) {
+        try {
+            await hubConnection.stop();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    await startHubConnection();
+};
+
+window.initTooltips = function () {
+    const triggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    triggerList.map(el => new bootstrap.Tooltip(el));
 };

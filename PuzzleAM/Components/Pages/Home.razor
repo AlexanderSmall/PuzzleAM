@@ -45,7 +45,7 @@
                 <InputText @bind-Value="registerModel.Username" class="form-control" placeholder="Username" />
                 <div class="input-group mt-2">
                     <InputText @bind-Value="registerModel.Password" type="password" class="form-control" placeholder="Password" />
-                    <span class="input-group-text" title="Password requirements:\n- At least 6 characters\n- At least one digit\n- At least one lowercase letter\n- At least one uppercase letter\n- At least one non-alphanumeric character\n- At least one unique character">&#9432;</span>
+                    <span class="input-group-text" data-bs-toggle="tooltip" data-bs-html="true" title="Password requirements:<br>- At least 6 characters<br>- At least one digit<br>- At least one lowercase letter<br>- At least one uppercase letter<br>- At least one non-alphanumeric character<br>- At least one unique character">&#9432;</span>
                 </div>
                 <InputText @bind-Value="registerModel.ConfirmPassword" type="password" class="form-control mt-2" placeholder="Confirm Password" />
                 @if (!string.IsNullOrEmpty(registerError))
@@ -107,6 +107,14 @@
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("initTooltips");
+        }
+    }
+
     private async Task CreateRoom()
     {
         var code = await JS.InvokeAsync<string>("createRoom");
@@ -146,6 +154,7 @@
             registerError = null;
             registerMessage = "Account created successfully";
             currentUsername = registerModel.Username;
+            await JS.InvokeVoidAsync("restartHubConnection");
         }
         else
         {
@@ -168,6 +177,7 @@
             loginError = null;
             currentUsername = loginModel.Username;
             await JS.InvokeVoidAsync("closeModal", "loginModal");
+            await JS.InvokeVoidAsync("restartHubConnection");
         }
         else
         {
