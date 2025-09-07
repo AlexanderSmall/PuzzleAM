@@ -20,8 +20,8 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
     [Inject] private ApplicationDbContext Db { get; set; } = default!;
     [Parameter] public string? RoomCode { get; set; }
-    private int selectedPieces = 100;
-    private static readonly int[] PieceOptions = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 };
+    private int selectedPieces = 112;
+    private static readonly int[] PieceOptions = { 8, 10, 12, 18, 21, 24, 32, 40, 50, 55, 60, 78, 84, 90, 105, 112, 119, 136, 144, 152, 171, 180, 189, 210, 220, 230, 253, 264, 275, 312 };
     private string selectedBackground = "#EFECE6";
     private bool scriptLoaded;
     private bool joined;
@@ -41,12 +41,13 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             try
             {
                 var width = await JS.InvokeAsync<int>("eval", "window.innerWidth");
+                selectedPieces = width < 768 ? 36 : 112;
                 if (width >= 992)
                 {
                     settingsVisible = true;
                     userListVisible = true;
-                    StateHasChanged();
                 }
+                StateHasChanged();
 
                 await JS.InvokeVoidAsync("setBackgroundColor", selectedBackground);
                 objRef = DotNetObjectReference.Create(this);
