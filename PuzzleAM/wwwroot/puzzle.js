@@ -181,7 +181,18 @@ function sendMove(piece) {
 }
 
 // Start the SignalR connection immediately instead of waiting for the window load event
-startHubConnection();
+let connectionPromise = startHubConnection();
+
+async function ensureHubConnection() {
+    if (!connectionPromise) {
+        connectionPromise = startHubConnection();
+    }
+    try {
+        await connectionPromise;
+    } catch (err) {
+        console.error('Error starting hub connection', err);
+    }
+}
 
 // Rebuild puzzle on viewport changes using the stored layout (debounced)
 let resizeTimeout;
@@ -204,6 +215,7 @@ window.setRoomCode = function (code) {
 };
 
 window.createRoom = async function (imageDataUrl, pieceCount) {
+    await ensureHubConnection();
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
         const code = await hubConnection.invoke("CreateRoom", imageDataUrl || "", pieceCount || 0);
         window.setRoomCode(code);
@@ -213,6 +225,7 @@ window.createRoom = async function (imageDataUrl, pieceCount) {
 };
 
 window.setPuzzle = async function (roomCode, imageDataUrl, pieceCount) {
+    await ensureHubConnection();
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
         try {
             await hubConnection.invoke("SetPuzzle", roomCode, imageDataUrl, pieceCount);
@@ -224,6 +237,7 @@ window.setPuzzle = async function (roomCode, imageDataUrl, pieceCount) {
 };
 
 window.joinRoom = async function (roomCode) {
+    await ensureHubConnection();
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
         const state = await hubConnection.invoke("JoinRoom", roomCode);
         if (state) {
@@ -235,6 +249,7 @@ window.joinRoom = async function (roomCode) {
 };
 
 window.leaveRoom = async function () {
+    await ensureHubConnection();
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected && currentRoomCode) {
         await hubConnection.invoke("LeaveRoom", currentRoomCode);
         currentRoomCode = null;
@@ -824,7 +839,8 @@ window.restartHubConnection = async function () {
             console.error(e);
         }
     }
-    await startHubConnection();
+    connectionPromise = startHubConnection();
+    await connectionPromise;
 };
 
 window.initTooltips = function () {
