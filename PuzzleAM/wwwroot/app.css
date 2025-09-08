@@ -153,17 +153,15 @@ h1:focus {
 
 @media (max-width: 768px) {
     .settings-panel {
-        flex-direction: column;
-        width: 100%;
-        align-items: stretch;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        width: auto;
     }
 
     .settings-panel > * {
-        width: 100%;
-        margin-bottom: 0.5rem;
-    }
-
-    .settings-panel > *:last-child {
+        width: auto;
         margin-bottom: 0;
     }
 }
