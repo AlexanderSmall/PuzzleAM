@@ -136,7 +136,8 @@ h1:focus {
 
 .load-icon img,
 .copy-icon img,
-.leave-icon img {
+.leave-icon img,
+.users-icon img {
     width: 1.25rem;
     height: 1.25rem;
 }
