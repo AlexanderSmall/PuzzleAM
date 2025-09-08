@@ -33,6 +33,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     private Timer? timer;
     private TimeSpan elapsed = TimeSpan.Zero;
     private bool completionRecorded;
+    private bool puzzleStarted;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -98,6 +99,10 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);        // ensures the full file is read
         imageDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        stopwatch.Reset();
+        elapsed = TimeSpan.Zero;
+        timer?.Dispose();
+        puzzleStarted = false;
         if (!string.IsNullOrEmpty(RoomCode))
         {
             await JS.InvokeVoidAsync("setPuzzle", RoomCode, imageDataUrl, selectedPieces);
@@ -158,6 +163,10 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     [JSInvokable]
     public Task PuzzleLoaded()
     {
+        if (puzzleStarted)
+        {
+            return Task.CompletedTask;
+        }
         completionRecorded = false;
         stopwatch.Restart();
         elapsed = TimeSpan.Zero;
@@ -167,6 +176,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             elapsed = stopwatch.Elapsed;
             InvokeAsync(StateHasChanged);
         }, null, 0, 1000);
+        puzzleStarted = true;
         return Task.CompletedTask;
     }
 
