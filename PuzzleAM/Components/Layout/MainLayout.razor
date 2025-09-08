@@ -28,6 +28,7 @@
     private void ToggleNav()
     {
         navOpen = !navOpen;
+        StateHasChanged();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
