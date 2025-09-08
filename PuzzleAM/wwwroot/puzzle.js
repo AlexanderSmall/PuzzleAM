@@ -570,38 +570,37 @@ function updatePieceShadow(piece) {
     const pieceWidth = parseFloat(piece.dataset.width);
     const pieceHeight = parseFloat(piece.dataset.height);
 
-    const shadows = [];
     const threshold = Math.min(pieceWidth, pieceHeight) * 0.05;
 
-    const bottomNeighbor = row < window.puzzleRows - 1 ? window.pieces[(row + 1) * window.puzzleCols + col] : null;
-    if (bottomNeighbor && parseInt(bottomNeighbor.dataset.groupId) === groupId) {
-        const expectedDx = parseFloat(bottomNeighbor.dataset.correctX) - pieceCorrectX;
-        const expectedDy = pieceHeight;
-        const actualDx = parseFloat(bottomNeighbor.style.left) - parseFloat(piece.style.left);
-        const actualDy = parseFloat(bottomNeighbor.style.top) - parseFloat(piece.style.top);
-        const diffX = Math.abs(actualDx - expectedDx);
-        const diffY = Math.abs(actualDy - expectedDy);
-        if (diffX >= threshold || diffY >= threshold) {
-            shadows.push('drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5))');
-        }
-    } else {
-        shadows.push('drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5))');
-    }
-
+    const topNeighbor = row > 0 ? window.pieces[(row - 1) * window.puzzleCols + col] : null;
     const rightNeighbor = col < window.puzzleCols - 1 ? window.pieces[row * window.puzzleCols + (col + 1)] : null;
-    if (rightNeighbor && parseInt(rightNeighbor.dataset.groupId) === groupId) {
-        const expectedDx = pieceWidth;
-        const expectedDy = parseFloat(rightNeighbor.dataset.correctY) - pieceCorrectY;
-        const actualDx = parseFloat(rightNeighbor.style.left) - parseFloat(piece.style.left);
-        const actualDy = parseFloat(rightNeighbor.style.top) - parseFloat(piece.style.top);
-        const diffX = Math.abs(actualDx - expectedDx);
-        const diffY = Math.abs(actualDy - expectedDy);
-        if (diffX >= threshold || diffY >= threshold) {
-            shadows.push('drop-shadow(3px 0 6px rgba(0, 0, 0, 0.5))');
+    const bottomNeighbor = row < window.puzzleRows - 1 ? window.pieces[(row + 1) * window.puzzleCols + col] : null;
+    const leftNeighbor = col > 0 ? window.pieces[row * window.puzzleCols + (col - 1)] : null;
+
+    const shadows = [];
+
+    const sides = [
+        { neighbor: topNeighbor, shadow: 'drop-shadow(0 -3px 6px rgba(0, 0, 0, 0.5))' },
+        { neighbor: rightNeighbor, shadow: 'drop-shadow(3px 0 6px rgba(0, 0, 0, 0.5))' },
+        { neighbor: bottomNeighbor, shadow: 'drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5))' },
+        { neighbor: leftNeighbor, shadow: 'drop-shadow(-3px 0 6px rgba(0, 0, 0, 0.5))' }
+    ];
+
+    sides.forEach(({ neighbor, shadow }) => {
+        if (neighbor && parseInt(neighbor.dataset.groupId) === groupId) {
+            const expectedDx = parseFloat(neighbor.dataset.correctX) - pieceCorrectX;
+            const expectedDy = parseFloat(neighbor.dataset.correctY) - pieceCorrectY;
+            const actualDx = parseFloat(neighbor.style.left) - parseFloat(piece.style.left);
+            const actualDy = parseFloat(neighbor.style.top) - parseFloat(piece.style.top);
+            const diffX = Math.abs(actualDx - expectedDx);
+            const diffY = Math.abs(actualDy - expectedDy);
+            if (diffX >= threshold || diffY >= threshold) {
+                shadows.push(shadow);
+            }
+        } else {
+            shadows.push(shadow);
         }
-    } else {
-        shadows.push('drop-shadow(3px 0 6px rgba(0, 0, 0, 0.5))');
-    }
+    });
 
     piece.style.filter = shadows.length ? shadows.join(' ') : 'none';
 }
