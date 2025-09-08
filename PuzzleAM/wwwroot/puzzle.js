@@ -132,9 +132,6 @@ async function startHubConnection() {
     });
 
     hubConnection.on("BoardState", state => {
-        if (puzzleEventHandler) {
-            puzzleEventHandler.invokeMethodAsync('PuzzleStateChanged', state.imageDataUrl || '', state.pieceCount || 0);
-        }
         if (state.imageDataUrl) {
             window.createPuzzle(state.imageDataUrl, "puzzleContainer", state);
         }
