@@ -24,6 +24,10 @@
             <option value="#C8D2C5" style="background-color:#C8D2C5;"></option>
         </select>
 
+        <button class="btn btn-outline-secondary users-icon" @onclick="ToggleUserList" title="Toggle user list">
+            <img src="/lib/heroicons/users.svg" alt="Toggle user list" />
+        </button>
+
         @if (!string.IsNullOrEmpty(RoomCode))
         {
             <button class="btn btn-outline-secondary copy-icon" @onclick="CopyRoomCode" title="Copy room code">
@@ -55,5 +59,4 @@
             }
         </ul>
     </div>
-    <Tab Class="user-tab" IsOpen="userListVisible" OnToggle="ToggleUserList" Vertical="true" />
 </div>
