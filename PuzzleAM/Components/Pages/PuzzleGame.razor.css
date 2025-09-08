@@ -7,6 +7,7 @@
     left: 0;
     width: 100%;
     z-index: 1000;
+    pointer-events: none;
 }
 
 .settings-panel {
@@ -14,6 +15,7 @@
     transition: max-height 0.3s ease, opacity 0.3s ease;
     max-height: 500px;
     opacity: 1;
+    pointer-events: auto;
 }
 
 .settings-panel.closed {
@@ -24,6 +26,7 @@
 ::deep(.settings-tab) {
     margin-top: 0.5rem;
     border-radius: 4px 4px 0 0;
+    pointer-events: auto;
 }
 
 .user-wrapper {
