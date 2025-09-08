@@ -161,6 +161,19 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     }
 
     [JSInvokable]
+    public Task PuzzleStateChanged(string imageDataUrl, int pieceCount)
+    {
+        this.imageDataUrl = imageDataUrl;
+        selectedPieces = pieceCount;
+        stopwatch.Reset();
+        elapsed = TimeSpan.Zero;
+        timer?.Dispose();
+        puzzleStarted = false;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
     public Task PuzzleLoaded()
     {
         if (puzzleStarted)
