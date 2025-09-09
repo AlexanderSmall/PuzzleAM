@@ -211,9 +211,33 @@ window.setRoomCode = function (code) {
     currentRoomCode = code;
 };
 
+// Clear all puzzle-related state so no data leaks between rooms
+window.resetPuzzleState = function () {
+    window.pieces = [];
+    window.pieceIndex = {};
+    window.maxZ = 1;
+    window.workspaceOffset = 0;
+    window.puzzleCompleted = false;
+    window.currentLayout = null;
+    window.currentImageDataUrl = null;
+    window.currentContainerId = null;
+    window.boardLeft = undefined;
+    window.boardTop = undefined;
+    window.boardWidth = undefined;
+    window.boardHeight = undefined;
+    window.puzzleRows = undefined;
+    window.puzzleCols = undefined;
+    locallyMovedPieces.clear();
+    const container = document.getElementById('puzzleContainer');
+    if (container) {
+        container.innerHTML = '';
+    }
+};
+
 window.createRoom = async function (imageDataUrl, pieceCount) {
     await ensureHubConnection();
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
+        window.resetPuzzleState();
         const code = await hubConnection.invoke("CreateRoom", imageDataUrl || "", pieceCount || 0);
         window.setRoomCode(code);
         return code;
@@ -236,6 +260,7 @@ window.setPuzzle = async function (roomCode, imageDataUrl, pieceCount) {
 window.joinRoom = async function (roomCode) {
     await ensureHubConnection();
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
+        window.resetPuzzleState();
         const state = await hubConnection.invoke("JoinRoom", roomCode);
         if (state) {
             window.setRoomCode(roomCode);
@@ -251,6 +276,7 @@ window.leaveRoom = async function () {
         await hubConnection.invoke("LeaveRoom", currentRoomCode);
         currentRoomCode = null;
     }
+    window.resetPuzzleState();
 };
 
 window.setBackgroundColor = function (color) {
