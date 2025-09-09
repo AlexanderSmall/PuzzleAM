@@ -28,6 +28,10 @@
             <img src="/lib/heroicons/users.svg" alt="Toggle user list" />
         </button>
 
+        <button class="btn btn-outline-secondary fullscreen-icon" @onclick="ToggleFullScreen" title="Toggle full screen">
+            <img src="/lib/heroicons/arrows-pointing-out.svg" alt="Toggle full screen" />
+        </button>
+
         @if (!string.IsNullOrEmpty(RoomCode))
         {
             <button class="btn btn-outline-secondary copy-icon" @onclick="CopyRoomCode" title="Copy room code">
