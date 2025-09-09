@@ -84,11 +84,11 @@ async function startHubConnection() {
         const piece = window.pieces[data.id];
         if (piece) {
             if (typeof window.boardLeft === 'number' && typeof window.boardWidth === 'number') {
-                piece.style.left = (window.boardLeft + data.left * window.boardWidth - window.workspaceOffset) + "px";
-                piece.style.top = (window.boardTop + data.top * window.boardHeight - window.workspaceOffset) + "px";
+                piece.style.left = Math.round(window.boardLeft + data.left * window.boardWidth - window.workspaceOffset) + "px";
+                piece.style.top = Math.round(window.boardTop + data.top * window.boardHeight - window.workspaceOffset) + "px";
             } else {
-                piece.style.left = (data.left - window.workspaceOffset) + "px";
-                piece.style.top = (data.top - window.workspaceOffset) + "px";
+                piece.style.left = Math.round(data.left - window.workspaceOffset) + "px";
+                piece.style.top = Math.round(data.top - window.workspaceOffset) + "px";
             }
             if (data.groupId != null) {
                 piece.dataset.groupId = data.groupId;
@@ -419,14 +419,14 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
                 const bottom = y === rows - 1 ? 0 : (vTabs[y][x] = Math.random() > 0.5 ? 1 : -1);
 
                 const piece = document.createElement('canvas');
-                piece.width = pieceWidth + offset * 2;
-                piece.height = pieceHeight + offset * 2;
+                piece.width = Math.round(pieceWidth + offset * 2);
+                piece.height = Math.round(pieceHeight + offset * 2);
                 piece.classList.add('puzzle-piece');
 
                 const pieceIndex = window.pieces.length;
                 const p = pieceMap[pieceIndex] || { left: 0, top: 0, groupId: pieceIndex };
-                piece.style.left = boardLeft + p.left * scaledWidth - window.workspaceOffset + 'px';
-                piece.style.top = boardTop + p.top * scaledHeight - window.workspaceOffset + 'px';
+                piece.style.left = Math.round(boardLeft + p.left * scaledWidth - window.workspaceOffset) + 'px';
+                piece.style.top = Math.round(boardTop + p.top * scaledHeight - window.workspaceOffset) + 'px';
 
                 if (window.currentLayout) {
                     window.currentLayout.pieces[pieceIndex] = {
@@ -437,8 +437,8 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
                     };
                 }
 
-                const correctX = boardLeft + x * pieceWidth - window.workspaceOffset;
-                const correctY = boardTop + y * pieceHeight - window.workspaceOffset;
+                const correctX = Math.round(boardLeft + x * pieceWidth - window.workspaceOffset);
+                const correctY = Math.round(boardTop + y * pieceHeight - window.workspaceOffset);
                 piece.dataset.correctX = correctX;
                 piece.dataset.correctY = correctY;
                 piece.dataset.width = pieceWidth;
@@ -452,15 +452,14 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
                 ctx.imageSmoothingEnabled = false;
                 ctx.clearRect(0, 0, piece.width, piece.height);
                 ctx.save();
-                ctx.translate(0.5, 0.5);
                 drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, offset);
                 ctx.clip();
                 ctx.drawImage(
                     img,
-                    x * srcPieceWidth - srcOffsetX,
-                    y * srcPieceHeight - srcOffsetY,
-                    srcPieceWidth + srcOffsetX * 2,
-                    srcPieceHeight + srcOffsetY * 2,
+                    Math.round(x * srcPieceWidth - srcOffsetX),
+                    Math.round(y * srcPieceHeight - srcOffsetY),
+                    Math.round(srcPieceWidth + srcOffsetX * 2),
+                    Math.round(srcPieceHeight + srcOffsetY * 2),
                     0,
                     0,
                     piece.width,
@@ -483,8 +482,11 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
 };
 
 function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
-    const radius = Math.min(w, h) / 6;
-    const neck = radius / 2;
+    w = Math.round(w);
+    h = Math.round(h);
+    offset = Math.round(offset);
+    const radius = Math.round(Math.min(w, h) / 6);
+    const neck = Math.round(radius / 2);
     ctx.beginPath();
     ctx.moveTo(offset, offset);
 
@@ -493,7 +495,7 @@ function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
         ctx.lineTo(offset + w, offset);
     } else {
         const dir = top;
-        const centerX = offset + w / 2;
+        const centerX = Math.round(offset + w / 2);
         const startX = centerX - radius;
         const endX = centerX + radius;
         ctx.lineTo(startX, offset);
@@ -509,7 +511,7 @@ function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
         ctx.lineTo(offset + w, offset + h);
     } else {
         const dir = right;
-        const centerY = offset + h / 2;
+        const centerY = Math.round(offset + h / 2);
         const startY = centerY - radius;
         const endY = centerY + radius;
         ctx.lineTo(offset + w, startY);
@@ -525,7 +527,7 @@ function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
         ctx.lineTo(offset, offset + h);
     } else {
         const dir = bottom;
-        const centerX = offset + w / 2;
+        const centerX = Math.round(offset + w / 2);
         const startX = centerX + radius;
         const endX = centerX - radius;
         ctx.lineTo(startX, offset + h);
@@ -541,7 +543,7 @@ function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
         ctx.lineTo(offset, offset);
     } else {
         const dir = left;
-        const centerY = offset + h / 2;
+        const centerY = Math.round(offset + h / 2);
         const startY = centerY + radius;
         const endY = centerY - radius;
         ctx.lineTo(offset, startY);
@@ -657,8 +659,10 @@ function makeDraggable(el, container) {
             if (maxY + dy > workspaceHeight - window.workspaceOffset) dy = workspaceHeight - window.workspaceOffset - maxY;
 
             piecesToMove.forEach(p => {
-                p.style.left = (parseFloat(p.style.left) + dx) + 'px';
-                p.style.top = (parseFloat(p.style.top) + dy) + 'px';
+                const newLeft = Math.round(parseFloat(p.style.left) + dx);
+                const newTop = Math.round(parseFloat(p.style.top) + dy);
+                p.style.left = newLeft + 'px';
+                p.style.top = newTop + 'px';
                 sendMove(p);
             });
 
