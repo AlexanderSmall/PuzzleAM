@@ -251,24 +251,31 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             StateHasChanged();
         }
 
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        if (user.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(imageDataUrl))
+        try
         {
-            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId is not null)
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(imageDataUrl))
             {
-                var puzzle = new CompletedPuzzle
+                var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (userId is not null)
                 {
-                    UserId = userId,
-                    UserName = user.Identity?.Name,
-                    ImageDataUrl = imageDataUrl,
-                    PieceCount = selectedPieces,
-                    TimeToComplete = elapsed
-                };
-                Db.CompletedPuzzles.Add(puzzle);
-                await Db.SaveChangesAsync();
+                    var puzzle = new CompletedPuzzle
+                    {
+                        UserId = userId,
+                        UserName = user.Identity?.Name,
+                        ImageDataUrl = imageDataUrl,
+                        PieceCount = selectedPieces,
+                        TimeToComplete = elapsed
+                    };
+                    Db.CompletedPuzzles.Add(puzzle);
+                    await Db.SaveChangesAsync();
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error recording completed puzzle");
         }
     }
 
