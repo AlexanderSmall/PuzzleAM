@@ -32,6 +32,13 @@ window.registerPuzzleEventHandler = function (dotNetHelper) {
     puzzleEventHandler = dotNetHelper;
 };
 
+function hidePuzzleLoading() {
+    const overlay = document.querySelector('.puzzle-loading');
+    if (overlay) {
+        overlay.remove();
+    }
+}
+
 function isMobileDevice() {
     if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') {
         return navigator.userAgentData.mobile;
@@ -145,7 +152,8 @@ async function startHubConnection() {
 
     hubConnection.on("UserList", users => {
         if (userListHandler) {
-            userListHandler.invokeMethodAsync("ReceiveUserList", users);
+            userListHandler.invokeMethodAsync("ReceiveUserList", users)
+                .catch(err => console.error('User list update error', err));
         }
     });
 
@@ -479,7 +487,11 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         let pieceCounter = 0;
 
         if (puzzleEventHandler) {
-            puzzleEventHandler.invokeMethodAsync('PuzzleProgress', 0);
+            puzzleEventHandler.invokeMethodAsync('PuzzleProgress', 0)
+                .catch(err => {
+                    console.error('Puzzle progress error', err);
+                    hidePuzzleLoading();
+                });
         }
 
         const schedule = cb => {
@@ -554,7 +566,11 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
 
                 pieceCounter++;
                 if (puzzleEventHandler) {
-                    puzzleEventHandler.invokeMethodAsync('PuzzleProgress', pieceCounter / totalPieces);
+                    puzzleEventHandler.invokeMethodAsync('PuzzleProgress', pieceCounter / totalPieces)
+                        .catch(err => {
+                            console.error('Puzzle progress error', err);
+                            hidePuzzleLoading();
+                        });
                 }
             }
             if (pieceCounter < totalPieces) {
@@ -563,7 +579,11 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
                 updateAllShadows();
                 playStartSound();
                 if (puzzleEventHandler) {
-                    puzzleEventHandler.invokeMethodAsync('PuzzleLoaded');
+                    puzzleEventHandler.invokeMethodAsync('PuzzleLoaded')
+                        .catch(err => {
+                            console.error('Puzzle loaded error', err);
+                            hidePuzzleLoading();
+                        });
                 }
             }
         };
@@ -867,9 +887,10 @@ function checkCompletion() {
         window.puzzleCompleted = true;
         console.log('Puzzle completed!');
         playApplauseSound();
-        if (puzzleEventHandler) {
-            puzzleEventHandler.invokeMethodAsync('PuzzleCompleted');
-        }
+            if (puzzleEventHandler) {
+                puzzleEventHandler.invokeMethodAsync('PuzzleCompleted')
+                    .catch(err => console.error('Puzzle completed error', err));
+            }
     }
 }
 
@@ -948,14 +969,6 @@ window.toggleFullScreen = function () {
     } catch (e) {
         console.error('Error toggling full screen', e);
     }
-};
-
-window.getImagePreviewUrl = function (inputId) {
-    const input = document.getElementById(inputId);
-    if (input && input.files && input.files[0]) {
-        return URL.createObjectURL(input.files[0]);
-    }
-    return null;
 };
 
 window.resizeImage = async function (inputId, maxWidth, maxHeight) {
