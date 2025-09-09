@@ -752,6 +752,12 @@ function snapPiece(el) {
                     });
 
                     const finalGroup = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
+                    finalGroup.forEach(p => {
+                        const roundedLeft = Math.round(parseFloat(p.style.left));
+                        const roundedTop = Math.round(parseFloat(p.style.top));
+                        p.style.left = roundedLeft + 'px';
+                        p.style.top = roundedTop + 'px';
+                    });
                     setGroupLayer(finalGroup);
                     finalGroup.forEach(sendMove);
                     playConnectSound();
