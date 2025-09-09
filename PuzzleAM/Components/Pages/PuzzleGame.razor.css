@@ -72,6 +72,16 @@
     margin-bottom: 0.5rem;
 }
 
+.preview-image {
+    max-width: 100%;
+    height: auto;
+}
+
+.loading-indicator {
+    margin-top: 1rem;
+    text-align: center;
+}
+
 @media (max-width: 768px) {
     .user-panel {
         width: 80vw;

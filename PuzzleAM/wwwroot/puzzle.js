@@ -884,3 +884,36 @@ window.toggleFullScreen = function () {
         console.error('Error toggling full screen', e);
     }
 };
+
+window.getImagePreviewUrl = function (inputId) {
+    const input = document.getElementById(inputId);
+    if (input && input.files && input.files[0]) {
+        return URL.createObjectURL(input.files[0]);
+    }
+    return null;
+};
+
+window.resizeImage = async function (inputId, maxWidth, maxHeight) {
+    const input = document.getElementById(inputId);
+    if (!input || !input.files || input.files.length === 0) {
+        return null;
+    }
+    const file = input.files[0];
+    try {
+        const bitmap = await createImageBitmap(file);
+        let width = bitmap.width;
+        let height = bitmap.height;
+        const scale = Math.min(maxWidth / width, maxHeight / height, 1);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bitmap, 0, 0, width, height);
+        return canvas.toDataURL(file.type);
+    } catch (e) {
+        console.error('Error resizing image', e);
+        throw e;
+    }
+};
