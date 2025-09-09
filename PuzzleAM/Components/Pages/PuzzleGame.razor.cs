@@ -14,6 +14,10 @@ namespace PuzzleAM.Components.Pages;
 public partial class PuzzleGame : ComponentBase, IAsyncDisposable
 {
     private string? imageDataUrl;
+    private string? previewUrl;
+    private bool isLoading;
+    private string? loadError;
+    private CancellationTokenSource? imageCts;
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private ILogger<PuzzleGame> Logger { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
@@ -94,18 +98,50 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
 
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
+        loadError = null;
         var file = e.File;
-        await using var stream = file.OpenReadStream(10 * 1024 * 1024);
-        using var ms = new MemoryStream();
-        await stream.CopyToAsync(ms);        // ensures the full file is read
-        imageDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
-        stopwatch.Reset();
-        elapsed = TimeSpan.Zero;
-        timer?.Dispose();
-        puzzleStarted = false;
-        if (!string.IsNullOrEmpty(RoomCode))
+        if (file.Size > 10 * 1024 * 1024)
         {
-            await JS.InvokeVoidAsync("setPuzzle", RoomCode, imageDataUrl, selectedPieces);
+            loadError = "File too large.";
+            return;
+        }
+
+        imageCts?.Cancel();
+        imageCts = new CancellationTokenSource();
+
+        try
+        {
+            isLoading = true;
+            // show a preview immediately
+            previewUrl = await JS.InvokeAsync<string>("getImagePreviewUrl", "imageLoader");
+            StateHasChanged();
+
+            // resize and convert to base64 on a background thread
+            imageDataUrl = await JS.InvokeAsync<string>("resizeImage", imageCts.Token, "imageLoader", 1920, 1080);
+
+            stopwatch.Reset();
+            elapsed = TimeSpan.Zero;
+            timer?.Dispose();
+            puzzleStarted = false;
+            if (!string.IsNullOrEmpty(RoomCode) && imageDataUrl is not null)
+            {
+                await JS.InvokeVoidAsync("setPuzzle", RoomCode, imageDataUrl, selectedPieces);
+                previewUrl = null;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            loadError = "Image processing canceled.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error processing image");
+            loadError = "Failed to process image.";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
         }
     }
 
