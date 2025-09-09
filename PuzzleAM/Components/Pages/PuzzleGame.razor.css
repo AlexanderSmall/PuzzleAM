@@ -67,6 +67,18 @@
     pointer-events: none;
 }
 
+.puzzle-loading {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.8);
+    padding: 1rem 2rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    z-index: 2000;
+}
+
 .room-code {
     font-weight: 600;
     margin-bottom: 0.5rem;
