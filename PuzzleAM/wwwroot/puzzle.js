@@ -104,30 +104,7 @@ async function startHubConnection() {
                 }
                 window.currentLayout.pieces[data.id] = stored;
             }
-            updatePieceShadow(piece);
-
-            const row = parseInt(piece.dataset.row);
-            const col = parseInt(piece.dataset.col);
-
-            const topNeighbor = row > 0 ? window.pieces[(row - 1) * window.puzzleCols + col] : null;
-            if (topNeighbor) {
-                updatePieceShadow(topNeighbor);
-            }
-
-            const leftNeighbor = col > 0 ? window.pieces[row * window.puzzleCols + (col - 1)] : null;
-            if (leftNeighbor) {
-                updatePieceShadow(leftNeighbor);
-            }
-
-            const bottomNeighbor = row < window.puzzleRows - 1 ? window.pieces[(row + 1) * window.puzzleCols + col] : null;
-            if (bottomNeighbor) {
-                updatePieceShadow(bottomNeighbor);
-            }
-
-            const rightNeighbor = col < window.puzzleCols - 1 ? window.pieces[row * window.puzzleCols + (col + 1)] : null;
-            if (rightNeighbor) {
-                updatePieceShadow(rightNeighbor);
-            }
+            updateShadowsAroundPiece(piece);
         }
     });
 
@@ -573,6 +550,36 @@ function updatePieceShadow(piece) {
     const shadows = [];
     const threshold = Math.min(pieceWidth, pieceHeight) * 0.05;
 
+    const topNeighbor = row > 0 ? window.pieces[(row - 1) * window.puzzleCols + col] : null;
+    if (topNeighbor && parseInt(topNeighbor.dataset.groupId) === groupId) {
+        const expectedDx = parseFloat(topNeighbor.dataset.correctX) - pieceCorrectX;
+        const expectedDy = -pieceHeight;
+        const actualDx = parseFloat(topNeighbor.style.left) - parseFloat(piece.style.left);
+        const actualDy = parseFloat(topNeighbor.style.top) - parseFloat(piece.style.top);
+        const diffX = Math.abs(actualDx - expectedDx);
+        const diffY = Math.abs(actualDy - expectedDy);
+        if (diffX >= threshold || diffY >= threshold) {
+            shadows.push('drop-shadow(0 -3px 6px rgba(0, 0, 0, 0.5))');
+        }
+    } else {
+        shadows.push('drop-shadow(0 -3px 6px rgba(0, 0, 0, 0.5))');
+    }
+
+    const leftNeighbor = col > 0 ? window.pieces[row * window.puzzleCols + (col - 1)] : null;
+    if (leftNeighbor && parseInt(leftNeighbor.dataset.groupId) === groupId) {
+        const expectedDx = -pieceWidth;
+        const expectedDy = parseFloat(leftNeighbor.dataset.correctY) - pieceCorrectY;
+        const actualDx = parseFloat(leftNeighbor.style.left) - parseFloat(piece.style.left);
+        const actualDy = parseFloat(leftNeighbor.style.top) - parseFloat(piece.style.top);
+        const diffX = Math.abs(actualDx - expectedDx);
+        const diffY = Math.abs(actualDy - expectedDy);
+        if (diffX >= threshold || diffY >= threshold) {
+            shadows.push('drop-shadow(-3px 0 6px rgba(0, 0, 0, 0.5))');
+        }
+    } else {
+        shadows.push('drop-shadow(-3px 0 6px rgba(0, 0, 0, 0.5))');
+    }
+
     const bottomNeighbor = row < window.puzzleRows - 1 ? window.pieces[(row + 1) * window.puzzleCols + col] : null;
     if (bottomNeighbor && parseInt(bottomNeighbor.dataset.groupId) === groupId) {
         const expectedDx = parseFloat(bottomNeighbor.dataset.correctX) - pieceCorrectX;
@@ -604,6 +611,21 @@ function updatePieceShadow(piece) {
     }
 
     piece.style.filter = shadows.length ? shadows.join(' ') : 'none';
+}
+
+function updateShadowsAroundPiece(piece) {
+    updatePieceShadow(piece);
+    const row = parseInt(piece.dataset.row);
+    const col = parseInt(piece.dataset.col);
+    const neighbors = [
+        row > 0 ? window.pieces[(row - 1) * window.puzzleCols + col] : null,
+        row < window.puzzleRows - 1 ? window.pieces[(row + 1) * window.puzzleCols + col] : null,
+        col > 0 ? window.pieces[row * window.puzzleCols + (col - 1)] : null,
+        col < window.puzzleCols - 1 ? window.pieces[row * window.puzzleCols + (col + 1)] : null
+    ];
+    neighbors.forEach(n => {
+        if (n) updatePieceShadow(n);
+    });
 }
 
 function updateAllShadows() {
@@ -755,7 +777,7 @@ function snapPiece(el) {
                     setGroupLayer(finalGroup);
                     finalGroup.forEach(sendMove);
                     playConnectSound();
-                    updateAllShadows();
+                    finalGroup.forEach(updateShadowsAroundPiece);
                     checkCompletion();
                     merged = true;
                     break outer;
@@ -764,7 +786,8 @@ function snapPiece(el) {
         }
     } while (merged);
 
-    updateAllShadows();
+    const finalPieces = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
+    finalPieces.forEach(updateShadowsAroundPiece);
     checkCompletion();
 }
 
