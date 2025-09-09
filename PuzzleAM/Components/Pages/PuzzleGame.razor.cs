@@ -14,7 +14,6 @@ namespace PuzzleAM.Components.Pages;
 public partial class PuzzleGame : ComponentBase, IAsyncDisposable
 {
     private string? imageDataUrl;
-    private string? previewUrl;
     private bool isLoading;
     private string? loadError;
     private CancellationTokenSource? imageCts;
@@ -113,10 +112,6 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         try
         {
             isLoading = true;
-            // show a preview immediately
-            previewUrl = await JS.InvokeAsync<string>("getImagePreviewUrl", "imageLoader");
-            StateHasChanged();
-
             // resize and convert to base64 on a background thread
             imageDataUrl = await JS.InvokeAsync<string>("resizeImage", imageCts.Token, "imageLoader", 1920, 1080);
 
@@ -124,10 +119,9 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             elapsed = TimeSpan.Zero;
             timer?.Dispose();
             puzzleStarted = false;
-            if (!string.IsNullOrEmpty(RoomCode) && imageDataUrl is not null)
+            if (!string.IsNullOrEmpty(RoomCode) && joined && imageDataUrl is not null)
             {
                 await JS.InvokeVoidAsync("setPuzzle", RoomCode, imageDataUrl, selectedPieces);
-                previewUrl = null;
             }
         }
         catch (OperationCanceledException)
