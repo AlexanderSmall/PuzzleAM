@@ -249,7 +249,20 @@ window.setPuzzle = async function (roomCode, imageDataUrl, pieceCount) {
     await ensureHubConnection();
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
         try {
-            await hubConnection.invoke("SetPuzzle", roomCode, imageDataUrl, pieceCount);
+            let width = 0, height = 0;
+            if (imageDataUrl) {
+                const dims = await new Promise(resolve => {
+                    const img = new Image();
+                    img.onload = function () {
+                        resolve({ width: img.width, height: img.height });
+                    };
+                    img.onerror = function () { resolve({ width: 0, height: 0 }); };
+                    img.src = imageDataUrl;
+                });
+                width = dims.width;
+                height = dims.height;
+            }
+            await hubConnection.invoke("SetPuzzle", roomCode, imageDataUrl, pieceCount, width, height);
         } catch (error) {
             console.error('Error setting puzzle', error);
             alert('Failed to set puzzle. Please try again.');

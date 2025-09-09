@@ -13,6 +13,7 @@ public class PuzzleHub : Hub
     private static readonly ConcurrentDictionary<string, PuzzleState> Rooms = new();
 
     private static readonly Random Random = new();
+    private const int MaxImageDimension = 4096;
 
     private static string GenerateRoomCode()
     {
@@ -44,7 +45,7 @@ public class PuzzleHub : Hub
         return code;
     }
 
-    public async Task SetPuzzle(string roomCode, string imageDataUrl, int pieceCount)
+    public async Task SetPuzzle(string roomCode, string imageDataUrl, int pieceCount, int width = 0, int height = 0)
     {
         if (Rooms.TryGetValue(roomCode, out var state))
         {
@@ -52,19 +53,46 @@ public class PuzzleHub : Hub
             state.PieceCount = pieceCount;
             state.Pieces.Clear();
 
-            double aspect = 1;
-            try
+            var imgW = width;
+            var imgH = height;
+            if (imgW <= 0 || imgH <= 0)
             {
-                var commaIndex = imageDataUrl.IndexOf(',');
-                var base64 = commaIndex >= 0 ? imageDataUrl[(commaIndex + 1)..] : imageDataUrl;
-                var imageBytes = Convert.FromBase64String(base64);
-                using var image = Image.Load(imageBytes);
-                aspect = (double)image.Width / image.Height;
+                if (state.ImageWidth > 0 && state.ImageHeight > 0)
+                {
+                    imgW = state.ImageWidth;
+                    imgH = state.ImageHeight;
+                }
+                else
+                {
+                    try
+                    {
+                        var commaIndex = imageDataUrl.IndexOf(',');
+                        var base64 = commaIndex >= 0 ? imageDataUrl[(commaIndex + 1)..] : imageDataUrl;
+                        var imageBytes = Convert.FromBase64String(base64);
+                        var info = Image.Identify(imageBytes);
+                        if (info is not null)
+                        {
+                            imgW = info.Width;
+                            imgH = info.Height;
+                        }
+                    }
+                    catch
+                    {
+                        imgW = 1;
+                        imgH = 1;
+                    }
+                }
             }
-            catch
+
+            if (imgW > MaxImageDimension || imgH > MaxImageDimension)
             {
-                aspect = 1;
+                throw new HubException("Image dimensions too large");
             }
+
+            state.ImageWidth = imgW;
+            state.ImageHeight = imgH;
+
+            double aspect = imgW > 0 && imgH > 0 ? (double)imgW / imgH : 1;
 
             int bestRows = 1;
             int bestCols = pieceCount;

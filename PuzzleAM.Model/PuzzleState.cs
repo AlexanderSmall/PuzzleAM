@@ -14,6 +14,8 @@ public class PuzzleState
 {
     public string ImageDataUrl { get; set; } = string.Empty;
     public int PieceCount { get; set; }
+    public int ImageWidth { get; set; }
+    public int ImageHeight { get; set; }
     // Dimensions of the puzzle board expressed in arbitrary units. Clients
     // will typically treat the board width and height as 1.0 and scale to the
     // available display area while piece coordinates are stored as percentages
