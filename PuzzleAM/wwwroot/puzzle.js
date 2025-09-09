@@ -788,11 +788,24 @@ function snapPiece(el) {
                 const diffY = actualDy - expectedDy;
 
                 if (Math.abs(diffX) < threshold && Math.abs(diffY) < threshold) {
+                    // Determine the new offset for the entire group based on each piece's
+                    // correct position to avoid accumulating rounding errors.
+                    const pieceOffsetX = pieceCurrentX - pieceCorrectX;
+                    const pieceOffsetY = pieceCurrentY - pieceCorrectY;
+                    const newOffsetX = pieceOffsetX + diffX;
+                    const newOffsetY = pieceOffsetY + diffY;
+
                     groupPieces.forEach(p => {
-                        const newLeft = Math.round(parseFloat(p.style.left) + diffX);
-                        const newTop = Math.round(parseFloat(p.style.top) + diffY);
+                        const correctX = parseFloat(p.dataset.correctX);
+                        const correctY = parseFloat(p.dataset.correctY);
+
+                        // Use a consistent subpixel rounding strategy to keep positions stable
+                        const newLeft = Math.round((correctX + newOffsetX) * 100) / 100;
+                        const newTop = Math.round((correctY + newOffsetY) * 100) / 100;
+
                         p.style.left = newLeft + 'px';
                         p.style.top = newTop + 'px';
+                        updatePieceShadow(p);
                         sendMove(p);
                     });
 
