@@ -44,7 +44,9 @@ function isMobileDevice() {
 function playStartSound() {
     try {
         sounds.start.currentTime = 0;
-        sounds.start.play();
+        sounds.start.play().catch(e => {
+            console.warn('Unable to play start sound', e);
+        });
     } catch (e) {
         console.warn('Unable to play start sound', e);
     }
@@ -53,7 +55,9 @@ function playStartSound() {
 function playConnectSound() {
     try {
         sounds.connect.currentTime = 0;
-        sounds.connect.play();
+        sounds.connect.play().catch(e => {
+            console.warn('Unable to play connect sound', e);
+        });
     } catch (e) {
         console.warn('Unable to play connect sound', e);
     }
@@ -62,7 +66,9 @@ function playConnectSound() {
 function playApplauseSound() {
     try {
         sounds.applause.currentTime = 0;
-        sounds.applause.play();
+        sounds.applause.play().catch(e => {
+            console.warn('Unable to play applause sound', e);
+        });
     } catch (e) {
         console.warn('Unable to play applause sound', e);
     }
