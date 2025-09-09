@@ -8,6 +8,11 @@ using PuzzleAM.Model;
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Threading;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Processing;
 
 namespace PuzzleAM.Components.Pages;
 
@@ -94,11 +99,26 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
 
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
+        const int maxDimension = 1024;
         var file = e.File;
         await using var stream = file.OpenReadStream(10 * 1024 * 1024);
+        using var image = await Image.LoadAsync(stream);
+
+        if (image.Width > maxDimension || image.Height > maxDimension)
+        {
+            var ratio = Math.Min((double)maxDimension / image.Width, (double)maxDimension / image.Height);
+            var width = (int)(image.Width * ratio);
+            var height = (int)(image.Height * ratio);
+            image.Mutate(x => x.Resize(width, height));
+        }
+
         using var ms = new MemoryStream();
-        await stream.CopyToAsync(ms);        // ensures the full file is read
-        imageDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        var contentType = file.ContentType == "image/png" ? "image/png" : "image/jpeg";
+        IImageEncoder encoder = contentType == "image/png" ? new PngEncoder() : new JpegEncoder();
+
+        await image.SaveAsync(ms, encoder);
+        imageDataUrl = $"data:{contentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+
         stopwatch.Reset();
         elapsed = TimeSpan.Zero;
         timer?.Dispose();
