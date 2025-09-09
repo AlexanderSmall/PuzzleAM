@@ -152,6 +152,21 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         userListVisible = !userListVisible;
     }
 
+    private async Task ToggleFullScreen()
+    {
+        if (scriptLoaded)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("toggleFullScreen");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error toggling full screen");
+            }
+        }
+    }
+
     [JSInvokable]
     public Task ReceiveUserList(string[] names)
     {

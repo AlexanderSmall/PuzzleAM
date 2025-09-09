@@ -844,3 +844,17 @@ window.initTooltips = function () {
     const triggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     triggerList.map(el => new bootstrap.Tooltip(el));
 };
+
+window.toggleFullScreen = function () {
+    try {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    } catch (e) {
+        console.error('Error toggling full screen', e);
+    }
+};
