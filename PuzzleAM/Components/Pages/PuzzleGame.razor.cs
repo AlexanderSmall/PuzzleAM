@@ -38,6 +38,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     private TimeSpan elapsed = TimeSpan.Zero;
     private bool completionRecorded;
     private bool puzzleStarted;
+    private double loadProgress = 1; // 1 means no loading overlay
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -228,6 +229,15 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             InvokeAsync(StateHasChanged);
         }, null, 0, 1000);
         puzzleStarted = true;
+        loadProgress = 1;
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public Task PuzzleProgress(double progress)
+    {
+        loadProgress = progress;
+        InvokeAsync(StateHasChanged);
         return Task.CompletedTask;
     }
 

@@ -66,6 +66,16 @@
     <div class="text-danger">@loadError</div>
 }
 
+@if (loadProgress < 1)
+{
+    <div class="puzzle-loading">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <div class="mt-2">@((int)(loadProgress * 100))%</div>
+    </div>
+}
+
 <div class="user-wrapper">
     <div class="user-panel @(userListVisible ? "open" : "closed")">
         @if (!string.IsNullOrEmpty(RoomCode))

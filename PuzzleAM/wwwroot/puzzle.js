@@ -326,9 +326,28 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
     }
     const img = new Image();
     img.onload = function () {
-        const rows = layout.rows;
-        const cols = layout.columns;
-        const piecesLayout = layout.pieces || [];
+        let rows = layout.rows;
+        let cols = layout.columns;
+
+        // On small screens lower the number of pieces to speed up generation
+        const smallScreen = window.innerWidth < 600 || window.innerHeight < 600;
+        if (smallScreen) {
+            const maxPieces = 200;
+            const total = rows * cols;
+            if (total > maxPieces) {
+                const factor = Math.sqrt(maxPieces / total);
+                rows = Math.max(1, Math.round(rows * factor));
+                cols = Math.max(1, Math.round(cols * factor));
+            }
+        }
+
+        window.currentLayout.rows = rows;
+        window.currentLayout.columns = cols;
+
+        let piecesLayout = layout.pieces || [];
+        if (rows !== layout.rows || cols !== layout.columns) {
+            piecesLayout = [];
+        }
         const pieceMap = {};
         piecesLayout.forEach(p => pieceMap[p.id] = p);
 
@@ -450,8 +469,25 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         window.pieces = [];
         window.pieceIndex = {};
 
-        for (let y = 0; y < rows; y++) {
-            for (let x = 0; x < cols; x++) {
+        const totalPieces = rows * cols;
+        let pieceCounter = 0;
+
+        if (puzzleEventHandler) {
+            puzzleEventHandler.invokeMethodAsync('PuzzleProgress', 0);
+        }
+
+        const schedule = cb => {
+            if (window.requestIdleCallback) {
+                requestIdleCallback(cb);
+            } else {
+                requestAnimationFrame(() => cb({ timeRemaining: () => 0, didTimeout: true }));
+            }
+        };
+
+        const createBatch = deadline => {
+            while (pieceCounter < totalPieces && (deadline.timeRemaining() > 0 || deadline.didTimeout)) {
+                const y = Math.floor(pieceCounter / cols);
+                const x = pieceCounter % cols;
                 const top = y === 0 ? 0 : -vTabs[y - 1][x];
                 const left = x === 0 ? 0 : -hTabs[y][x - 1];
                 const right = x === cols - 1 ? 0 : (hTabs[y][x] = Math.random() > 0.5 ? 1 : -1);
@@ -462,17 +498,16 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
                 piece.height = pieceHeight + offset * 2;
                 piece.classList.add('puzzle-piece');
 
-                const pieceIndex = window.pieces.length;
-                const p = pieceMap[pieceIndex] || { left: 0, top: 0, groupId: pieceIndex };
+                const p = pieceMap[pieceCounter] || { left: 0, top: 0, groupId: pieceCounter };
                 piece.style.left = boardLeft + p.left * scaledWidth - window.workspaceOffset + 'px';
                 piece.style.top = boardTop + p.top * scaledHeight - window.workspaceOffset + 'px';
 
                 if (window.currentLayout) {
-                    window.currentLayout.pieces[pieceIndex] = {
-                        id: pieceIndex,
+                    window.currentLayout.pieces[pieceCounter] = {
+                        id: pieceCounter,
                         left: p.left,
                         top: p.top,
-                        groupId: p.groupId !== undefined ? p.groupId : pieceIndex
+                        groupId: p.groupId !== undefined ? p.groupId : pieceCounter
                     };
                 }
 
@@ -482,8 +517,8 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
                 piece.dataset.correctY = correctY;
                 piece.dataset.width = pieceWidth;
                 piece.dataset.height = pieceHeight;
-                piece.dataset.groupId = p.groupId !== undefined ? p.groupId : pieceIndex;
-                piece.dataset.pieceId = pieceIndex;
+                piece.dataset.groupId = p.groupId !== undefined ? p.groupId : pieceCounter;
+                piece.dataset.pieceId = pieceCounter;
                 piece.dataset.row = y;
                 piece.dataset.col = x;
 
@@ -510,13 +545,24 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
                 window.pieces.push(piece);
                 window.pieceIndex[`${y},${x}`] = piece;
                 makeDraggable(piece, workspace);
+
+                pieceCounter++;
+                if (puzzleEventHandler) {
+                    puzzleEventHandler.invokeMethodAsync('PuzzleProgress', pieceCounter / totalPieces);
+                }
             }
-        }
-        updateAllShadows();
-        playStartSound();
-        if (puzzleEventHandler) {
-            puzzleEventHandler.invokeMethodAsync('PuzzleLoaded');
-        }
+            if (pieceCounter < totalPieces) {
+                schedule(createBatch);
+            } else {
+                updateAllShadows();
+                playStartSound();
+                if (puzzleEventHandler) {
+                    puzzleEventHandler.invokeMethodAsync('PuzzleLoaded');
+                }
+            }
+        };
+
+        schedule(createBatch);
     };
     img.src = imageDataUrl;
 };
