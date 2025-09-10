@@ -4,9 +4,9 @@
     </div>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" @bind="IsExpanded" />
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" @bind="IsExpanded" @onclick:stopPropagation />
 
-    <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <div class="nav-scrollable" @onclick="CloseMenu">
         <nav class="nav flex-column">
             <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
                 <img src="/lib/heroicons/home.svg" alt="Home icon" /> Home
@@ -42,4 +42,6 @@
 
     [Parameter]
     public EventCallback<bool> IsExpandedChanged { get; set; }
+
+    private void CloseMenu(MouseEventArgs e) => IsExpanded = false;
 }
