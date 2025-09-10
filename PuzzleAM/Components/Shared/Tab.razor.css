@@ -11,3 +11,18 @@
     justify-content: center;
     padding: 0;
 }
+
+.nav-tab {
+    position: fixed;
+    top: 1rem;
+    transition: left 0.3s ease;
+    z-index: 1001;
+}
+
+.nav-tab.open {
+    left: 250px;
+}
+
+.nav-tab.closed {
+    left: 0;
+}
