@@ -20,15 +20,6 @@ main {
     pointer-events: none;
 }
 
-.nav-wrapper {
-    pointer-events: none;
-}
-
-.nav-wrapper .sidebar,
-.nav-wrapper .nav-tab {
-    pointer-events: auto;
-}
-
 @media (min-width: 641px) {
     .page {
         flex-direction: row;
