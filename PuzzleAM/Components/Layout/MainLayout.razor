@@ -2,10 +2,12 @@
 @inject IJSRuntime JS
 
 <div class="page">
-    <div class="sidebar @(navOpen ? string.Empty : "closed")">
-        <NavMenu @bind-IsExpanded="navOpen" />
+    <div class="nav-wrapper">
+        <div class="sidebar @(navOpen ? string.Empty : "closed")">
+            <NavMenu @bind-IsExpanded="navOpen" />
+        </div>
+        <Tab Class="nav-tab @(navOpen ? "open" : "closed")" IsOpen="navOpen" OnToggle="ToggleNav" />
     </div>
-    <Tab Class="nav-tab @(navOpen ? "open" : "closed")" IsOpen="navOpen" OnToggle="ToggleNav" />
 
     <main>
         <article class="content px-4">
