@@ -7,7 +7,9 @@
     left: 0;
     width: 100%;
     z-index: 1000;
-    pointer-events: none;
+    /* Allow pointer events so interactive elements like the settings tab
+       can receive click events.  Previously, "pointer-events: none" blocked
+       clicks from reaching the Tab component. */
 }
 
 .settings-panel {
