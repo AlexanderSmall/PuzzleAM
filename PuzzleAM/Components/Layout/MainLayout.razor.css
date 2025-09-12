@@ -18,3 +18,42 @@
     right: 0.75rem;
     top: 0.5rem;
 }
+.side-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 250px;
+    height: 100vh;
+    background-color: #f8f9fa;
+    transform: translateX(-250px);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    padding-top: 1rem;
+}
+
+.side-nav.open {
+    transform: translateX(0);
+}
+
+.side-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.side-nav li {
+    padding: 0.5rem 1rem;
+}
+
+.side-nav a {
+    text-decoration: none;
+    color: rgba(5, 39, 103, 0.8);
+}
+
+.main-content {
+    transition: margin-left 0.3s ease;
+}
+
+.main-content.shifted {
+    margin-left: 250px;
+}

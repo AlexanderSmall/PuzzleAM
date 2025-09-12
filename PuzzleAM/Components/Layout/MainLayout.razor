@@ -1,6 +1,20 @@
 @inherits LayoutComponentBase
 
-<main>
+<Tab IsOpen="@isNavOpen"
+     OnToggle="ToggleNav"
+     Class="nav-tab @(isNavOpen ? "open" : "closed")" />
+
+<nav class="side-nav @(isNavOpen ? "open" : string.Empty)">
+    <ul>
+        <AuthorizeView>
+            <Authorized>
+                <li><NavLink href="/gallery">Gallery</NavLink></li>
+            </Authorized>
+        </AuthorizeView>
+    </ul>
+</nav>
+
+<main class="main-content @(isNavOpen ? "shifted" : string.Empty)">
     <article class="content px-4">
         @Body
     </article>
@@ -11,3 +25,12 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private bool isNavOpen;
+
+    private void ToggleNav()
+    {
+        isNavOpen = !isNavOpen;
+    }
+}
