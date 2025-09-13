@@ -588,48 +588,16 @@ function setGroupLayer(groupPieces) {
 
 function updatePieceShadow(piece) {
     const groupId = parseInt(piece.dataset.groupId);
-    const row = parseInt(piece.dataset.row);
-    const col = parseInt(piece.dataset.col);
+    const groupSize = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId).length;
 
-    const pieceCorrectX = parseFloat(piece.dataset.correctX);
-    const pieceCorrectY = parseFloat(piece.dataset.correctY);
-    const pieceWidth = parseFloat(piece.dataset.width);
-    const pieceHeight = parseFloat(piece.dataset.height);
-
-    const shadows = [];
-    const threshold = Math.min(pieceWidth, pieceHeight) * 0.05;
-
-    const bottomNeighbor = row < window.puzzleRows - 1 ? window.pieces[(row + 1) * window.puzzleCols + col] : null;
-    if (bottomNeighbor && parseInt(bottomNeighbor.dataset.groupId) === groupId) {
-        const expectedDx = parseFloat(bottomNeighbor.dataset.correctX) - pieceCorrectX;
-        const expectedDy = pieceHeight;
-        const actualDx = parseFloat(bottomNeighbor.style.left) - parseFloat(piece.style.left);
-        const actualDy = parseFloat(bottomNeighbor.style.top) - parseFloat(piece.style.top);
-        const diffX = Math.abs(actualDx - expectedDx);
-        const diffY = Math.abs(actualDy - expectedDy);
-        if (diffX >= threshold || diffY >= threshold) {
-            shadows.push('drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5))');
-        }
-    } else {
-        shadows.push('drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5))');
+    if (groupSize > 1) {
+        // Any piece that is part of a connected group should not render a shadow
+        piece.style.filter = 'none';
+        return;
     }
 
-    const rightNeighbor = col < window.puzzleCols - 1 ? window.pieces[row * window.puzzleCols + (col + 1)] : null;
-    if (rightNeighbor && parseInt(rightNeighbor.dataset.groupId) === groupId) {
-        const expectedDx = pieceWidth;
-        const expectedDy = parseFloat(rightNeighbor.dataset.correctY) - pieceCorrectY;
-        const actualDx = parseFloat(rightNeighbor.style.left) - parseFloat(piece.style.left);
-        const actualDy = parseFloat(rightNeighbor.style.top) - parseFloat(piece.style.top);
-        const diffX = Math.abs(actualDx - expectedDx);
-        const diffY = Math.abs(actualDy - expectedDy);
-        if (diffX >= threshold || diffY >= threshold) {
-            shadows.push('drop-shadow(3px 0 6px rgba(0, 0, 0, 0.5))');
-        }
-    } else {
-        shadows.push('drop-shadow(3px 0 6px rgba(0, 0, 0, 0.5))');
-    }
-
-    piece.style.filter = shadows.length ? shadows.join(' ') : 'none';
+    // Single pieces retain a subtle shadow so they stand out on the board
+    piece.style.filter = 'drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5)) drop-shadow(3px 0 6px rgba(0, 0, 0, 0.5))';
 }
 
 function updateAllShadows() {
@@ -758,15 +726,15 @@ function snapPiece(el) {
 
                 const actualDx = parseFloat(neighbor.style.left) - pieceCurrentX;
                 const actualDy = parseFloat(neighbor.style.top) - pieceCurrentY;
-                const diffX = actualDx - expectedDx;
-                const diffY = actualDy - expectedDy;
+                // Rounding the differences prevents fractional pixel values that can
+                // create visible seams between connected pieces.
+                const diffX = Math.round(actualDx - expectedDx);
+                const diffY = Math.round(actualDy - expectedDy);
 
                 if (Math.abs(diffX) < threshold && Math.abs(diffY) < threshold) {
                     groupPieces.forEach(p => {
-                        const newLeft = Math.round(parseFloat(p.style.left) + diffX);
-                        const newTop = Math.round(parseFloat(p.style.top) + diffY);
-                        p.style.left = newLeft + 'px';
-                        p.style.top = newTop + 'px';
+                        p.style.left = (parseFloat(p.style.left) + diffX) + 'px';
+                        p.style.top = (parseFloat(p.style.top) + diffY) + 'px';
                         sendMove(p);
                     });
 
@@ -779,7 +747,10 @@ function snapPiece(el) {
 
                     const finalGroup = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
                     setGroupLayer(finalGroup);
-                    finalGroup.forEach(sendMove);
+                    finalGroup.forEach(p => {
+                        p.style.filter = 'none';
+                        sendMove(p);
+                    });
                     playConnectSound();
                     updateAllShadows();
                     checkCompletion();
