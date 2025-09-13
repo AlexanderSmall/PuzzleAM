@@ -556,9 +556,7 @@ function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
         const endX = centerX - radius;
         ctx.lineTo(startX, offset + h);
         ctx.lineTo(startX, offset + h + neck * dir);
-        const startAngle = dir === 1 ? 0 : Math.PI;
-        const endAngle = dir === 1 ? Math.PI : 0;
-        ctx.arc(centerX, offset + h + neck * dir, radius, startAngle, endAngle, false);
+        ctx.arc(centerX, offset + h + neck * dir, radius, 0, Math.PI, dir === -1);
         ctx.lineTo(endX, offset + h + neck * dir);
         ctx.lineTo(endX, offset + h);
         ctx.lineTo(offset, offset + h);
