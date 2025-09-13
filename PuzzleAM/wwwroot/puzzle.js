@@ -726,12 +726,14 @@ function snapPiece(el) {
 
                 const actualDx = parseFloat(neighbor.style.left) - pieceCurrentX;
                 const actualDy = parseFloat(neighbor.style.top) - pieceCurrentY;
-                // Rounding the differences prevents fractional pixel values that can
-                // create visible seams between connected pieces.
-                const diffX = Math.round(actualDx - expectedDx);
-                const diffY = Math.round(actualDy - expectedDy);
+                const offsetX = actualDx - expectedDx;
+                const offsetY = actualDy - expectedDy;
 
-                if (Math.abs(diffX) < threshold && Math.abs(diffY) < threshold) {
+                // Compare using the raw offsets so near-threshold pieces still connect,
+                // then round the adjustment applied to the pieces to avoid seams.
+                if (Math.abs(offsetX) < threshold && Math.abs(offsetY) < threshold) {
+                    const diffX = Math.round(offsetX);
+                    const diffY = Math.round(offsetY);
                     groupPieces.forEach(p => {
                         p.style.left = (parseFloat(p.style.left) + diffX) + 'px';
                         p.style.top = (parseFloat(p.style.top) + diffY) + 'px';
