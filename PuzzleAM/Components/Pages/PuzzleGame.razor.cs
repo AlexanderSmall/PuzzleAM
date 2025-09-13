@@ -49,7 +49,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             try
             {
                 var width = await JS.InvokeAsync<int>("eval", "window.innerWidth");
-                selectedPieces = width < 768 ? 36 : 112;
+                selectedPieces = width < 768 ? 32 : 112;
                 if (width >= 992)
                 {
                     settingsVisible = true;
