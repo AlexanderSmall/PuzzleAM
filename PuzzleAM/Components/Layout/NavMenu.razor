@@ -22,11 +22,28 @@
     </div>
 
 @code {
+    private bool _isExpanded;
+
     [Parameter]
-    public bool IsExpanded { get; set; }
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded != value)
+            {
+                _isExpanded = value;
+                IsExpandedChanged.InvokeAsync(value);
+            }
+        }
+    }
 
     [Parameter]
     public EventCallback<bool> IsExpandedChanged { get; set; }
 
-    private Task CloseMenu(MouseEventArgs e) => IsExpandedChanged.InvokeAsync(false);
+    private Task CloseMenu(MouseEventArgs e)
+    {
+        IsExpanded = false;
+        return Task.CompletedTask;
+    }
 }
