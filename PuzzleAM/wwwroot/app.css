@@ -5,20 +5,10 @@ html, body {
 
 body {
     margin: 0;
-    background-color: #f5f5f5;
-    background-image: repeating-linear-gradient(
-            0deg,
-            rgba(0, 0, 0, 0.02),
-            rgba(0, 0, 0, 0.02) 1px,
-            transparent 1px,
-            transparent 40px
-        ),
-        repeating-linear-gradient(
-            90deg,
-            rgba(0, 0, 0, 0.02),
-            rgba(0, 0, 0, 0.02) 1px,
-            transparent 1px,
-            transparent 40px
+    background-color: #ffffff;
+    background-image: repeating-conic-gradient(
+            #f3f3f3 0% 25%,
+            #ffffff 0% 50%
         );
     background-size: 40px 40px;
 }
