@@ -2,8 +2,6 @@
 @inject IJSRuntime JS
 
 
-<Tab Class=@($"nav-tab {(navOpen ? "open" : "closed")}") IsOpen="navOpen" OnToggle="ToggleNav" />
-
 <div class="page">
     <div class="sidebar @(navOpen ? string.Empty : "closed")">
         <NavMenu @bind-IsExpanded="navOpen" />
@@ -15,6 +13,8 @@
         </article>
     </main>
 </div>
+
+<Tab Class=@($"nav-tab {(navOpen ? "open" : "closed")}") IsOpen="navOpen" OnToggle="ToggleNav" />
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
