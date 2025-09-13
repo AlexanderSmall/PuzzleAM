@@ -76,13 +76,16 @@
 }
 
 @media (max-width: 768px) {
-    .user-panel {
-        width: 80vw;
-        left: 50%;
-        right: auto;
+    .user-wrapper {
         top: 10vh;
-        transform: translateX(-50%);
-        z-index: 1000;
+        left: 0;
+        right: 0;
+        align-items: center;
+    }
+
+    .user-panel {
+        width: calc(100% - 2rem);
+        transform: none;
         max-height: 80vh;
     }
 
