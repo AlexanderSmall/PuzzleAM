@@ -44,7 +44,8 @@ using (var scope = app.Services.CreateScope())
             Id INTEGER PRIMARY KEY AUTOINCREMENT,
             UserId TEXT NOT NULL,
             UserName TEXT NULL,
-            ImageDataUrl TEXT NOT NULL,
+            ImageData BLOB NOT NULL,
+            ContentType TEXT NOT NULL,
             PieceCount INTEGER NOT NULL,
             TimeToComplete TEXT NOT NULL
         );");
