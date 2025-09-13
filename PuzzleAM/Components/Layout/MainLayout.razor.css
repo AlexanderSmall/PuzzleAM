@@ -18,6 +18,8 @@ main {
 .sidebar.closed {
     width: 0;
     pointer-events: none;
+    position: fixed;
+    left: -250px;
 }
 
 @media (min-width: 641px) {
