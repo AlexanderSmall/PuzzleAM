@@ -19,6 +19,8 @@ namespace PuzzleAM.Components.Pages;
 public partial class PuzzleGame : ComponentBase, IAsyncDisposable
 {
     private string? imageDataUrl;
+    private byte[]? imageBytes;
+    private string? imageContentType;
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private ILogger<PuzzleGame> Logger { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
@@ -117,7 +119,9 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         IImageEncoder encoder = contentType == "image/png" ? new PngEncoder() : new JpegEncoder();
 
         await image.SaveAsync(ms, encoder);
-        imageDataUrl = $"data:{contentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        imageBytes = ms.ToArray();
+        imageContentType = contentType;
+        imageDataUrl = $"data:{contentType};base64,{Convert.ToBase64String(imageBytes)}";
 
         stopwatch.Reset();
         elapsed = TimeSpan.Zero;
@@ -233,7 +237,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
 
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        if (user.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(imageDataUrl))
+        if (user.Identity?.IsAuthenticated == true && imageBytes is not null && !string.IsNullOrEmpty(imageContentType))
         {
             var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId is not null)
@@ -242,7 +246,8 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
                 {
                     UserId = userId,
                     UserName = user.Identity?.Name,
-                    ImageDataUrl = imageDataUrl,
+                    ImageData = imageBytes,
+                    ContentType = imageContentType,
                     PieceCount = selectedPieces,
                     TimeToComplete = elapsed
                 };
