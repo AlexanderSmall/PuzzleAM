@@ -776,18 +776,12 @@ function snapPiece(el) {
                 const offsetX = actualDx - expectedDx;
                 const offsetY = actualDy - expectedDy;
 
-                // Compare using the raw offsets so near-threshold pieces still connect,
-                // then round the adjustment applied to the pieces to avoid seams.
+                // Compare using the raw offsets so near-threshold pieces still connect.
                 if (Math.abs(offsetX) < threshold && Math.abs(offsetY) < threshold) {
-                    const diffX = Math.round(offsetX);
-                    const diffY = Math.round(offsetY);
-                    groupPieces.forEach(p => {
-                        p.style.left = (parseFloat(p.style.left) + diffX) + 'px';
-                        p.style.top = (parseFloat(p.style.top) + diffY) + 'px';
-                        sendMove(p);
-                    });
-
                     const neighborGroupId = parseInt(neighbor.dataset.groupId);
+                    const neighborOffsetX = Math.round(parseFloat(neighbor.style.left) - parseFloat(neighbor.dataset.correctX));
+                    const neighborOffsetY = Math.round(parseFloat(neighbor.style.top) - parseFloat(neighbor.dataset.correctY));
+
                     window.pieces.forEach(p => {
                         if (parseInt(p.dataset.groupId) === neighborGroupId) {
                             p.dataset.groupId = groupId;
@@ -797,6 +791,10 @@ function snapPiece(el) {
                     const finalGroup = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
                     setGroupLayer(finalGroup);
                     finalGroup.forEach(p => {
+                        const targetX = Math.round(parseFloat(p.dataset.correctX) + neighborOffsetX);
+                        const targetY = Math.round(parseFloat(p.dataset.correctY) + neighborOffsetY);
+                        p.style.left = targetX + 'px';
+                        p.style.top = targetY + 'px';
                         p.style.filter = 'none';
                         sendMove(p);
                     });
