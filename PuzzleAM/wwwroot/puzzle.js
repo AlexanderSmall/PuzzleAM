@@ -76,6 +76,20 @@ async function startHubConnection() {
 
     window.puzzleHub = hubConnection;
 
+    hubConnection.onreconnected(async () => {
+        if (currentRoomCode) {
+            try {
+                await hubConnection.invoke("JoinRoom", currentRoomCode);
+            } catch (e) {
+                console.error('Error rejoining room', e);
+            }
+        }
+    });
+
+    hubConnection.onclose(() => {
+        connectionPromise = startHubConnection();
+    });
+
     hubConnection.on("PieceMoved", data => {
         if (locallyMovedPieces.has(data.id)) {
             return;
@@ -145,6 +159,13 @@ async function startHubConnection() {
 
     try {
         await hubConnection.start();
+        if (currentRoomCode) {
+            try {
+                await hubConnection.invoke("JoinRoom", currentRoomCode);
+            } catch (e) {
+                console.error('Error joining room', e);
+            }
+        }
     } catch (err) {
         console.error(err);
     }
@@ -181,7 +202,8 @@ function sendMove(piece) {
 let connectionPromise = startHubConnection();
 
 async function ensureHubConnection() {
-    if (!connectionPromise) {
+    if (!connectionPromise || !hubConnection ||
+        hubConnection.state === signalR.HubConnectionState.Disconnected) {
         connectionPromise = startHubConnection();
     }
     try {
