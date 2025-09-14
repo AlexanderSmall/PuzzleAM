@@ -299,6 +299,7 @@ window.setBackgroundColor = function (color) {
 
 window.createPuzzle = function (imageDataUrl, containerId, layout) {
     window.puzzleCompleted = false;
+    const currentGeneration = (window.puzzleGeneration = (window.puzzleGeneration || 0) + 1);
     window.currentImageDataUrl = imageDataUrl;
     window.currentContainerId = containerId;
     window.currentLayout = {
@@ -313,6 +314,9 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
     }
     const img = new Image();
     img.onload = function () {
+        if (currentGeneration !== window.puzzleGeneration) {
+            return;
+        }
         const rows = layout.rows;
         const cols = layout.columns;
         const piecesLayout = layout.pieces || [];
@@ -442,6 +446,9 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         const batchSize = 50;
 
         function buildNextBatch() {
+            if (currentGeneration !== window.puzzleGeneration) {
+                return;
+            }
             let count = 0;
             while (y < rows && count < batchSize) {
                 const top = y === 0 ? 0 : -vTabs[y - 1][x];
@@ -512,7 +519,7 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
             }
             if (y < rows) {
                 requestAnimationFrame(buildNextBatch);
-            } else {
+            } else if (currentGeneration === window.puzzleGeneration) {
                 updateAllShadows();
                 playStartSound();
                 if (puzzleEventHandler) {
