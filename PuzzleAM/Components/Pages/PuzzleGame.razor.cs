@@ -101,7 +101,8 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
 
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
-        const int maxDimension = 1024;
+        // Resize large images more aggressively so we transmit less data
+        const int maxDimension = 800;
         var file = e.File;
         await using var stream = file.OpenReadStream(10 * 1024 * 1024);
         using var image = await Image.LoadAsync(stream);
@@ -116,7 +117,10 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
 
         using var ms = new MemoryStream();
         var contentType = file.ContentType == "image/png" ? "image/png" : "image/jpeg";
-        IImageEncoder encoder = contentType == "image/png" ? new PngEncoder() : new JpegEncoder();
+        // Use stronger compression for both JPEG and PNG uploads
+        IImageEncoder encoder = contentType == "image/png"
+            ? new PngEncoder { CompressionLevel = PngCompressionLevel.BestCompression }
+            : new JpegEncoder { Quality = 60 };
 
         await image.SaveAsync(ms, encoder);
         imageBytes = ms.ToArray();

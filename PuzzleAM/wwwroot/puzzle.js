@@ -437,8 +437,13 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         window.pieces = [];
         window.pieceIndex = {};
 
-        for (let y = 0; y < rows; y++) {
-            for (let x = 0; x < cols; x++) {
+        let y = 0;
+        let x = 0;
+        const batchSize = 50;
+
+        function buildNextBatch() {
+            let count = 0;
+            while (y < rows && count < batchSize) {
                 const top = y === 0 ? 0 : -vTabs[y - 1][x];
                 const left = x === 0 ? 0 : -hTabs[y][x - 1];
                 const right = x === cols - 1 ? 0 : (hTabs[y][x] = Math.random() > 0.5 ? 1 : -1);
@@ -497,13 +502,26 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
                 window.pieces.push(piece);
                 window.pieceIndex[`${y},${x}`] = piece;
                 makeDraggable(piece, workspace);
+
+                x++;
+                if (x === cols) {
+                    x = 0;
+                    y++;
+                }
+                count++;
+            }
+            if (y < rows) {
+                requestAnimationFrame(buildNextBatch);
+            } else {
+                updateAllShadows();
+                playStartSound();
+                if (puzzleEventHandler) {
+                    puzzleEventHandler.invokeMethodAsync('PuzzleLoaded');
+                }
             }
         }
-        updateAllShadows();
-        playStartSound();
-        if (puzzleEventHandler) {
-            puzzleEventHandler.invokeMethodAsync('PuzzleLoaded');
-        }
+
+        requestAnimationFrame(buildNextBatch);
     };
     img.src = imageDataUrl;
 };
