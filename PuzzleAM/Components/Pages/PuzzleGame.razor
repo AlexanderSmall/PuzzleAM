@@ -13,7 +13,7 @@
             }
         </select>
 
-        <InputFile id="imageLoader" OnChange="OnInputFileChange" class="d-none" />
+        <InputFile id="imageLoader" OnChange="HandleImageUpload" class="d-none" @ref="fileInput" />
         <label for="imageLoader" class="btn btn-primary load-icon" title="Load Image">
             <img src="/lib/heroicons/image.svg" alt="Load image icon" />
         </label>

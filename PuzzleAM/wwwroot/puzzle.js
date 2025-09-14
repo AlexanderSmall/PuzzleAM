@@ -15,6 +15,38 @@ window.currentLayout = null;
 window.currentImageDataUrl = null;
 window.currentContainerId = null;
 
+// Resize and compress an image client-side before sending to .NET
+window.resizeImage = function (input, dotNetRef) {
+    const file = input.files[0];
+    if (!file) {
+        return;
+    }
+
+    const maxDimension = 1024;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+            let { width, height } = img;
+            if (width > maxDimension || height > maxDimension) {
+                const ratio = Math.min(maxDimension / width, maxDimension / height);
+                width *= ratio;
+                height *= ratio;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+            const dataUrl = canvas.toDataURL(type, 0.8);
+            dotNetRef.invokeMethodAsync('OnInputFileChange', dataUrl);
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+};
+
 // Load audio assets for various game events
 const sounds = {
     start: new Audio('/audio/Start.wav'),
