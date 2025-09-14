@@ -8,11 +8,6 @@ using PuzzleAM.Model;
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Threading;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Processing;
 
 namespace PuzzleAM.Components.Pages;
 
@@ -41,6 +36,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     private TimeSpan elapsed = TimeSpan.Zero;
     private bool completionRecorded;
     private bool puzzleStarted;
+    private InputFile? fileInput;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -99,29 +95,28 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         }
     }
 
-    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
     {
-        const int maxDimension = 1024;
-        var file = e.File;
-        await using var stream = file.OpenReadStream(10 * 1024 * 1024);
-        using var image = await Image.LoadAsync(stream);
-
-        if (image.Width > maxDimension || image.Height > maxDimension)
+        if (objRef is not null && fileInput is not null)
         {
-            var ratio = Math.Min((double)maxDimension / image.Width, (double)maxDimension / image.Height);
-            var width = (int)(image.Width * ratio);
-            var height = (int)(image.Height * ratio);
-            image.Mutate(x => x.Resize(width, height));
+            await JS.InvokeVoidAsync("resizeImage", fileInput.Element, objRef);
         }
+    }
 
-        using var ms = new MemoryStream();
-        var contentType = file.ContentType == "image/png" ? "image/png" : "image/jpeg";
-        IImageEncoder encoder = contentType == "image/png" ? new PngEncoder() : new JpegEncoder();
-
-        await image.SaveAsync(ms, encoder);
-        imageBytes = ms.ToArray();
-        imageContentType = contentType;
-        imageDataUrl = $"data:{contentType};base64,{Convert.ToBase64String(imageBytes)}";
+    [JSInvokable]
+    public async Task OnInputFileChange(string dataUrl)
+    {
+        imageDataUrl = dataUrl;
+        var comma = dataUrl.IndexOf(',');
+        if (comma >= 0)
+        {
+            var header = dataUrl.Substring(0, comma); // e.g., data:image/png;base64
+            var start = header.IndexOf(':') + 1;
+            var end = header.IndexOf(';');
+            imageContentType = header.Substring(start, end - start);
+            var base64 = dataUrl[(comma + 1)..];
+            imageBytes = Convert.FromBase64String(base64);
+        }
 
         stopwatch.Reset();
         elapsed = TimeSpan.Zero;
