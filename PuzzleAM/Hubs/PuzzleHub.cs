@@ -70,7 +70,7 @@ public class PuzzleHub : Hub
                     var rentedBuffer = ArrayPool<byte>.Shared.Rent(bufferLength);
                     try
                     {
-                        if (Convert.TryFromBase64String(base64Span, rentedBuffer, out var bytesWritten))
+                        if (Convert.TryFromBase64Chars(base64Span, rentedBuffer, out var bytesWritten))
                         {
                             using var stream = new MemoryStream(rentedBuffer, 0, bytesWritten, writable: false, publiclyVisible: true);
                             var info = Image.Identify(stream);
