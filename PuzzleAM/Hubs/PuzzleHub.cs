@@ -66,39 +66,48 @@ public class PuzzleHub : Hub
                 aspect = 1;
             }
 
+            var safeAspect = aspect > 0 ? aspect : 1;
             int bestRows = 1;
-            int bestCols = pieceCount;
-            double bestDiff = double.MaxValue;
-            for (int r = 1; r <= Math.Sqrt(pieceCount); r++)
+            int bestCols = Math.Max(1, pieceCount);
+            double bestPieceDiff = double.MaxValue;
+            double bestBoardDiff = double.MaxValue;
+
+            void EvaluateCandidate(int rows, int cols)
+            {
+                if (rows <= 0 || cols <= 0)
+                {
+                    return;
+                }
+
+                var pieceAspect = safeAspect * rows / cols;
+                var pieceDiff = Math.Abs(pieceAspect - 1.0);
+                var boardDiff = Math.Abs((double)cols / rows - safeAspect);
+
+                bool isBetter = pieceDiff < bestPieceDiff
+                    || (Math.Abs(pieceDiff - bestPieceDiff) < 1e-9 && boardDiff < bestBoardDiff)
+                    || (Math.Abs(pieceDiff - bestPieceDiff) < 1e-9
+                        && Math.Abs(boardDiff - bestBoardDiff) < 1e-9
+                        && Math.Abs(rows - cols) < Math.Abs(bestRows - bestCols));
+
+                if (isBetter)
+                {
+                    bestPieceDiff = pieceDiff;
+                    bestBoardDiff = boardDiff;
+                    bestRows = rows;
+                    bestCols = cols;
+                }
+            }
+
+            var limit = (int)Math.Sqrt(pieceCount);
+            for (int r = 1; r <= limit; r++)
             {
                 if (pieceCount % r == 0)
                 {
                     int c = pieceCount / r;
-                    bool orientationOk = aspect >= 1 ? c >= r : r >= c;
-                    double diff = Math.Abs((double)c / r - aspect);
-                    if (orientationOk && diff < bestDiff)
+                    EvaluateCandidate(r, c);
+                    if (c != r)
                     {
-                        bestDiff = diff;
-                        bestRows = r;
-                        bestCols = c;
-                    }
-                }
-            }
-
-            if (bestDiff == double.MaxValue)
-            {
-                for (int r = 1; r <= Math.Sqrt(pieceCount); r++)
-                {
-                    if (pieceCount % r == 0)
-                    {
-                        int c = pieceCount / r;
-                        double diff = Math.Abs((double)c / r - aspect);
-                        if (diff < bestDiff)
-                        {
-                            bestDiff = diff;
-                            bestRows = r;
-                            bestCols = c;
-                        }
+                        EvaluateCandidate(c, r);
                     }
                 }
             }

@@ -41,6 +41,10 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     private TimeSpan elapsed = TimeSpan.Zero;
     private bool completionRecorded;
     private bool puzzleStarted;
+    private string? pendingImageDataUrl;
+    private int pendingPieceCount;
+    private bool puzzleUploadPending;
+    private bool sendingPendingPuzzle;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -81,6 +85,11 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             {
                 Logger.LogError(ex, "Error initializing puzzle");
             }
+        }
+
+        if (puzzleUploadPending && scriptLoaded)
+        {
+            await TrySendPendingPuzzleAsync();
         }
     }
 
@@ -137,9 +146,13 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         elapsed = TimeSpan.Zero;
         timer?.Dispose();
         puzzleStarted = false;
-        if (!string.IsNullOrEmpty(RoomCode))
+        pendingImageDataUrl = imageDataUrl;
+        pendingPieceCount = selectedPieces;
+        puzzleUploadPending = true;
+        await TrySendPendingPuzzleAsync();
+        if (puzzleUploadPending)
         {
-            await JS.InvokeVoidAsync("setPuzzle", RoomCode, imageDataUrl, selectedPieces);
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -272,5 +285,54 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         timer?.Dispose();
         objRef?.Dispose();
         await Task.CompletedTask;
+    }
+
+    private async Task TrySendPendingPuzzleAsync()
+    {
+        if (!puzzleUploadPending || sendingPendingPuzzle)
+        {
+            return;
+        }
+
+        if (!scriptLoaded || string.IsNullOrEmpty(RoomCode) || string.IsNullOrEmpty(pendingImageDataUrl) || !joined)
+        {
+            return;
+        }
+
+        sendingPendingPuzzle = true;
+        try
+        {
+            await JS.InvokeVoidAsync("setPuzzle", RoomCode, pendingImageDataUrl, pendingPieceCount);
+            puzzleUploadPending = false;
+        }
+        catch (Exception ex) when (IsDisconnectedException(ex))
+        {
+            puzzleUploadPending = true;
+            Logger.LogInformation(ex, "Delaying puzzle upload until the connection is restored.");
+        }
+        catch (Exception ex)
+        {
+            puzzleUploadPending = false;
+            Logger.LogError(ex, "Error setting puzzle");
+        }
+        finally
+        {
+            sendingPendingPuzzle = false;
+        }
+    }
+
+    private static bool IsDisconnectedException(Exception ex)
+    {
+        if (ex is JSDisconnectedException)
+        {
+            return true;
+        }
+
+        if (ex is InvalidOperationException ioe && ioe.Message.Contains("disconnected", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return ex.InnerException is not null && IsDisconnectedException(ex.InnerException);
     }
 }
