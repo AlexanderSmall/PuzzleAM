@@ -101,8 +101,14 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
 
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
-        // Resize large images more aggressively so we transmit less data
-        const int maxDimension = 800;
+        // Resize large images more aggressively so we transmit less data. Adjust the
+        // maximum dimension based on the device width so smaller devices transmit
+        // proportionally smaller images.
+        var deviceWidth = await JS.InvokeAsync<int>("eval", "window.innerWidth");
+        var maxDimension = deviceWidth < 576 ? 400
+            : deviceWidth < 992 ? 600
+            : 800;
+
         var file = e.File;
         await using var stream = file.OpenReadStream(10 * 1024 * 1024);
         using var image = await Image.LoadAsync(stream);
