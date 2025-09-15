@@ -18,9 +18,13 @@ RUN dotnet publish -c Release -o /app/out
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
+RUN mkdir -p /data/puzzleam
+VOLUME ["/data/puzzleam"]
+
 # Expose port 8080 and configure Kestrel to listen on all interfaces
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
+ENV ConnectionStrings__DefaultConnection="Data Source=/data/puzzleam/app.db"
 
 # Copy published output and start the application
 COPY --from=build /app/out .

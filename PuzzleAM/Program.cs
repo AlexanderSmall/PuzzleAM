@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PuzzleAM;
@@ -8,6 +9,7 @@ using PuzzleAM.ViewServices;
 using Microsoft.AspNetCore.Components;
 using System.Net.Http;
 using System.Security.Claims;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,7 +25,9 @@ builder.Services.AddScoped(sp => new HttpClient
         BaseAddress = new Uri(sp.GetRequiredService<NavigationManager>().BaseUri)
     });
 
-var connection = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db";
+var connection = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=/data/puzzleam/app.db";
+
+EnsureDatabaseDirectory(connection);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(connection));
 builder.Services.AddIdentityCore<IdentityUser>()
@@ -38,17 +42,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.EnsureCreated();
-    db.Database.ExecuteSqlRaw(
-        @"CREATE TABLE IF NOT EXISTS CompletedPuzzles (
-            Id INTEGER PRIMARY KEY AUTOINCREMENT,
-            UserId TEXT NOT NULL,
-            UserName TEXT NULL,
-            ImageData BLOB NOT NULL,
-            ContentType TEXT NOT NULL,
-            PieceCount INTEGER NOT NULL,
-            TimeToComplete TEXT NOT NULL
-        );");
+    db.Database.Migrate();
 }
 
 // Configure the HTTP request pipeline.
@@ -103,6 +97,23 @@ app.MapGet("/user", (ClaimsPrincipal user) =>
     user.Identity?.IsAuthenticated == true
         ? Results.Ok(user.Identity.Name)
         : Results.Unauthorized());
+
+static void EnsureDatabaseDirectory(string connectionString)
+{
+    var connectionBuilder = new SqliteConnectionStringBuilder(connectionString);
+    var dataSource = connectionBuilder.DataSource;
+    if (string.IsNullOrWhiteSpace(dataSource))
+    {
+        return;
+    }
+
+    var fullPath = Path.GetFullPath(dataSource);
+    var directory = Path.GetDirectoryName(fullPath);
+    if (!string.IsNullOrEmpty(directory))
+    {
+        Directory.CreateDirectory(directory);
+    }
+}
 
 app.Run();
 
