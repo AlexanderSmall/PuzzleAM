@@ -174,8 +174,8 @@ async function startHubConnection() {
 function sendMove(piece) {
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected &&
         typeof window.boardLeft === 'number' && typeof window.boardWidth === 'number') {
-        const left = Math.round(parseFloat(piece.style.left) + window.workspaceOffset);
-        const top = Math.round(parseFloat(piece.style.top) + window.workspaceOffset);
+        const left = parseFloat(piece.style.left) + window.workspaceOffset;
+        const top = parseFloat(piece.style.top) + window.workspaceOffset;
         const payload = {
             id: parseInt(piece.dataset.pieceId),
             left: (left - window.boardLeft) / window.boardWidth,
@@ -512,7 +512,6 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
                 ctx.imageSmoothingEnabled = false;
                 ctx.clearRect(0, 0, piece.width, piece.height);
                 ctx.save();
-                ctx.translate(0.5, 0.5);
                 drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, offset);
                 ctx.clip();
                 ctx.drawImage(
@@ -779,8 +778,8 @@ function snapPiece(el) {
                 // Compare using the raw offsets so near-threshold pieces still connect.
                 if (Math.abs(offsetX) < threshold && Math.abs(offsetY) < threshold) {
                     const neighborGroupId = parseInt(neighbor.dataset.groupId);
-                    const neighborOffsetX = Math.round(parseFloat(neighbor.style.left) - parseFloat(neighbor.dataset.correctX));
-                    const neighborOffsetY = Math.round(parseFloat(neighbor.style.top) - parseFloat(neighbor.dataset.correctY));
+                    const neighborOffsetX = parseFloat(neighbor.style.left) - parseFloat(neighbor.dataset.correctX);
+                    const neighborOffsetY = parseFloat(neighbor.style.top) - parseFloat(neighbor.dataset.correctY);
 
                     window.pieces.forEach(p => {
                         if (parseInt(p.dataset.groupId) === neighborGroupId) {
@@ -791,8 +790,8 @@ function snapPiece(el) {
                     const finalGroup = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
                     setGroupLayer(finalGroup);
                     finalGroup.forEach(p => {
-                        const targetX = Math.round(parseFloat(p.dataset.correctX) + neighborOffsetX);
-                        const targetY = Math.round(parseFloat(p.dataset.correctY) + neighborOffsetY);
+                        const targetX = parseFloat(p.dataset.correctX) + neighborOffsetX;
+                        const targetY = parseFloat(p.dataset.correctY) + neighborOffsetY;
                         p.style.left = targetX + 'px';
                         p.style.top = targetY + 'px';
                         p.style.filter = 'none';
