@@ -15,6 +15,42 @@ window.currentLayout = null;
 window.currentImageDataUrl = null;
 window.currentContainerId = null;
 
+async function loadPuzzleImage(imageDataUrl) {
+    if (!imageDataUrl) {
+        throw new Error('Image data URL is required.');
+    }
+
+    if (typeof window.createImageBitmap === 'function') {
+        try {
+            const response = await fetch(imageDataUrl);
+            const blob = await response.blob();
+            const bitmap = await createImageBitmap(blob);
+            return {
+                source: bitmap,
+                width: bitmap.width,
+                height: bitmap.height,
+                cleanup: () => bitmap.close()
+            };
+        } catch (err) {
+            console.warn('createImageBitmap failed, falling back to HTMLImageElement decoding', err);
+        }
+    }
+
+    return await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.decoding = 'async';
+        img.loading = 'eager';
+        img.onload = () => resolve({
+            source: img,
+            width: img.naturalWidth || img.width,
+            height: img.naturalHeight || img.height,
+            cleanup: () => { }
+        });
+        img.onerror = reject;
+        img.src = imageDataUrl;
+    });
+}
+
 // Load audio assets for various game events
 const sounds = {
     start: new Audio('/audio/Start.wav'),
@@ -319,7 +355,7 @@ window.setBackgroundColor = function (color) {
     }
 };
 
-window.createPuzzle = function (imageDataUrl, containerId, layout) {
+window.createPuzzle = async function (imageDataUrl, containerId, layout) {
     window.puzzleCompleted = false;
     const currentGeneration = (window.puzzleGeneration = (window.puzzleGeneration || 0) + 1);
     window.currentImageDataUrl = imageDataUrl;
@@ -334,16 +370,37 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
             window.currentLayout.pieces[p.id] = { ...p };
         });
     }
-    const img = new Image();
-    img.onload = function () {
+
+    let loadedImage;
+    try {
+        loadedImage = await loadPuzzleImage(imageDataUrl);
+    } catch (error) {
+        console.error('Failed to decode puzzle image', error);
+        return;
+    }
+
+    const { source, width: imageWidth, height: imageHeight, cleanup } = loadedImage;
+    let cleanedUp = false;
+    const disposeSource = () => {
+        if (!cleanedUp) {
+            cleanedUp = true;
+            cleanup();
+        }
+    };
+
+    try {
         if (currentGeneration !== window.puzzleGeneration) {
+            disposeSource();
             return;
         }
+
         const rows = layout.rows;
         const cols = layout.columns;
         const piecesLayout = layout.pieces || [];
         const pieceMap = {};
-        piecesLayout.forEach(p => pieceMap[p.id] = p);
+        piecesLayout.forEach(p => {
+            pieceMap[p.id] = p;
+        });
 
         // Determine the bounding box of all pieces in the layout. This allows
         // us to scale the puzzle so that every piece—even ones scattered
@@ -366,6 +423,10 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         });
 
         const container = document.getElementById(containerId);
+        if (!container) {
+            disposeSource();
+            return;
+        }
         container.classList.add('puzzle-viewport');
         container.innerHTML = '';
 
@@ -389,11 +450,11 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         const boundingNormalizedHeight = maxBottom - minTop;
 
         let scale = Math.min(
-            containerWidth / (img.width * boundingNormalizedWidth),
-            containerHeight / (img.height * boundingNormalizedHeight)
+            containerWidth / (imageWidth * boundingNormalizedWidth),
+            containerHeight / (imageHeight * boundingNormalizedHeight)
         );
-        let scaledWidth = img.width * scale;
-        let scaledHeight = img.height * scale;
+        let scaledWidth = imageWidth * scale;
+        let scaledHeight = imageHeight * scale;
         let pieceWidth = scaledWidth / cols;
         let pieceHeight = scaledHeight / rows;
         let offset = Math.min(pieceWidth, pieceHeight) / 4;
@@ -429,8 +490,8 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
         container.appendChild(workspace);
         window.workspaceOffset = offset;
 
-        const srcPieceWidth = img.width / cols;
-        const srcPieceHeight = img.height / rows;
+        const srcPieceWidth = imageWidth / cols;
+        const srcPieceHeight = imageHeight / rows;
         const srcOffsetX = offset / scale;
         const srcOffsetY = offset / scale;
 
@@ -469,89 +530,105 @@ window.createPuzzle = function (imageDataUrl, containerId, layout) {
 
         function buildNextBatch() {
             if (currentGeneration !== window.puzzleGeneration) {
+                disposeSource();
                 return;
             }
-            let count = 0;
-            while (y < rows && count < batchSize) {
-                const top = y === 0 ? 0 : -vTabs[y - 1][x];
-                const left = x === 0 ? 0 : -hTabs[y][x - 1];
-                const right = x === cols - 1 ? 0 : (hTabs[y][x] = Math.random() > 0.5 ? 1 : -1);
-                const bottom = y === rows - 1 ? 0 : (vTabs[y][x] = Math.random() > 0.5 ? 1 : -1);
 
-                const piece = document.createElement('canvas');
-                piece.width = pieceWidth + offset * 2;
-                piece.height = pieceHeight + offset * 2;
-                piece.classList.add('puzzle-piece');
+            try {
+                let count = 0;
+                const fragment = document.createDocumentFragment();
+                while (y < rows && count < batchSize) {
+                    const top = y === 0 ? 0 : -vTabs[y - 1][x];
+                    const left = x === 0 ? 0 : -hTabs[y][x - 1];
+                    const right = x === cols - 1 ? 0 : (hTabs[y][x] = Math.random() > 0.5 ? 1 : -1);
+                    const bottom = y === rows - 1 ? 0 : (vTabs[y][x] = Math.random() > 0.5 ? 1 : -1);
 
-                const pieceIndex = window.pieces.length;
-                const p = pieceMap[pieceIndex] || { left: 0, top: 0, groupId: pieceIndex };
-                piece.style.left = boardLeft + p.left * scaledWidth - window.workspaceOffset + 'px';
-                piece.style.top = boardTop + p.top * scaledHeight - window.workspaceOffset + 'px';
+                    const piece = document.createElement('canvas');
+                    piece.width = pieceWidth + offset * 2;
+                    piece.height = pieceHeight + offset * 2;
+                    piece.classList.add('puzzle-piece');
 
-                if (window.currentLayout) {
-                    window.currentLayout.pieces[pieceIndex] = {
-                        id: pieceIndex,
-                        left: p.left,
-                        top: p.top,
-                        groupId: p.groupId !== undefined ? p.groupId : pieceIndex
-                    };
+                    const pieceIndex = window.pieces.length;
+                    const p = pieceMap[pieceIndex] || { left: 0, top: 0, groupId: pieceIndex };
+                    piece.style.left = boardLeft + p.left * scaledWidth - window.workspaceOffset + 'px';
+                    piece.style.top = boardTop + p.top * scaledHeight - window.workspaceOffset + 'px';
+
+                    if (window.currentLayout) {
+                        window.currentLayout.pieces[pieceIndex] = {
+                            id: pieceIndex,
+                            left: p.left,
+                            top: p.top,
+                            groupId: p.groupId !== undefined ? p.groupId : pieceIndex
+                        };
+                    }
+
+                    const correctX = boardLeft + x * pieceWidth - window.workspaceOffset;
+                    const correctY = boardTop + y * pieceHeight - window.workspaceOffset;
+                    piece.dataset.correctX = correctX;
+                    piece.dataset.correctY = correctY;
+                    piece.dataset.width = pieceWidth;
+                    piece.dataset.height = pieceHeight;
+                    piece.dataset.groupId = p.groupId !== undefined ? p.groupId : pieceIndex;
+                    piece.dataset.pieceId = pieceIndex;
+                    piece.dataset.row = y;
+                    piece.dataset.col = x;
+
+                    const ctx = piece.getContext('2d');
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.clearRect(0, 0, piece.width, piece.height);
+                    ctx.save();
+                    drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, offset);
+                    ctx.clip();
+                    ctx.drawImage(
+                        source,
+                        x * srcPieceWidth - srcOffsetX,
+                        y * srcPieceHeight - srcOffsetY,
+                        srcPieceWidth + srcOffsetX * 2,
+                        srcPieceHeight + srcOffsetY * 2,
+                        0,
+                        0,
+                        piece.width,
+                        piece.height
+                    );
+                    ctx.restore();
+                    fragment.appendChild(piece);
+                    window.pieces.push(piece);
+                    window.pieceIndex[`${y},${x}`] = piece;
+                    makeDraggable(piece, workspace);
+
+                    x++;
+                    if (x === cols) {
+                        x = 0;
+                        y++;
+                    }
+                    count++;
                 }
 
-                const correctX = boardLeft + x * pieceWidth - window.workspaceOffset;
-                const correctY = boardTop + y * pieceHeight - window.workspaceOffset;
-                piece.dataset.correctX = correctX;
-                piece.dataset.correctY = correctY;
-                piece.dataset.width = pieceWidth;
-                piece.dataset.height = pieceHeight;
-                piece.dataset.groupId = p.groupId !== undefined ? p.groupId : pieceIndex;
-                piece.dataset.pieceId = pieceIndex;
-                piece.dataset.row = y;
-                piece.dataset.col = x;
-
-                const ctx = piece.getContext('2d');
-                ctx.imageSmoothingEnabled = false;
-                ctx.clearRect(0, 0, piece.width, piece.height);
-                ctx.save();
-                drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, offset);
-                ctx.clip();
-                ctx.drawImage(
-                    img,
-                    x * srcPieceWidth - srcOffsetX,
-                    y * srcPieceHeight - srcOffsetY,
-                    srcPieceWidth + srcOffsetX * 2,
-                    srcPieceHeight + srcOffsetY * 2,
-                    0,
-                    0,
-                    piece.width,
-                    piece.height
-                );
-                ctx.restore();
-                workspace.appendChild(piece);
-                window.pieces.push(piece);
-                window.pieceIndex[`${y},${x}`] = piece;
-                makeDraggable(piece, workspace);
-
-                x++;
-                if (x === cols) {
-                    x = 0;
-                    y++;
+                if (fragment.childNodes.length > 0) {
+                    workspace.appendChild(fragment);
                 }
-                count++;
-            }
-            if (y < rows) {
-                requestAnimationFrame(buildNextBatch);
-            } else if (currentGeneration === window.puzzleGeneration) {
-                updateAllShadows();
-                playStartSound();
-                if (puzzleEventHandler) {
-                    puzzleEventHandler.invokeMethodAsync('PuzzleLoaded');
+
+                if (y < rows) {
+                    requestAnimationFrame(buildNextBatch);
+                } else if (currentGeneration === window.puzzleGeneration) {
+                    updateAllShadows();
+                    playStartSound();
+                    if (puzzleEventHandler) {
+                        puzzleEventHandler.invokeMethodAsync('PuzzleLoaded');
+                    }
+                    disposeSource();
                 }
+            } catch (err) {
+                console.error('Error while generating puzzle pieces', err);
+                disposeSource();
             }
         }
 
         requestAnimationFrame(buildNextBatch);
-    };
-    img.src = imageDataUrl;
+    } catch (error) {
+        console.error('Error constructing puzzle', error);
+        disposeSource();
+    }
 };
 
 function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {

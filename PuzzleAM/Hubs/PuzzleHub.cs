@@ -1,5 +1,7 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 using PuzzleAM.Model;
@@ -53,17 +55,40 @@ public class PuzzleHub : Hub
             state.Pieces.Clear();
 
             double aspect = 1;
-            try
+            if (!string.IsNullOrEmpty(imageDataUrl))
             {
-                var commaIndex = imageDataUrl.IndexOf(',');
-                var base64 = commaIndex >= 0 ? imageDataUrl[(commaIndex + 1)..] : imageDataUrl;
-                var imageBytes = Convert.FromBase64String(base64);
-                using var image = Image.Load(imageBytes);
-                aspect = (double)image.Width / image.Height;
-            }
-            catch
-            {
-                aspect = 1;
+                try
+                {
+                    ReadOnlySpan<char> base64Span = imageDataUrl.AsSpan();
+                    var commaIndex = base64Span.IndexOf(',');
+                    if (commaIndex >= 0)
+                    {
+                        base64Span = base64Span[(commaIndex + 1)..];
+                    }
+
+                    var bufferLength = (base64Span.Length * 3) / 4 + 4;
+                    var rentedBuffer = ArrayPool<byte>.Shared.Rent(bufferLength);
+                    try
+                    {
+                        if (Convert.TryFromBase64String(base64Span, rentedBuffer, out var bytesWritten))
+                        {
+                            using var stream = new MemoryStream(rentedBuffer, 0, bytesWritten, writable: false, publiclyVisible: true);
+                            var info = Image.Identify(stream);
+                            if (info is not null && info.Height > 0)
+                            {
+                                aspect = (double)info.Width / info.Height;
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(rentedBuffer);
+                    }
+                }
+                catch
+                {
+                    aspect = 1;
+                }
             }
 
             var safeAspect = aspect > 0 ? aspect : 1;
@@ -126,7 +151,8 @@ public class PuzzleHub : Hub
             var marginX = Math.Max(pieceWidth, pieceHeight);
             var marginY = marginX;
 
-            var placedRects = new List<(double x, double y, double w, double h)>();
+            var placedRects = new List<(double x, double y, double w, double h)>(pieceCount);
+            var piecePositions = new PiecePosition[pieceCount];
             for (var id = 0; id < pieceCount; id++)
             {
                 double startX, startY;
@@ -161,7 +187,9 @@ public class PuzzleHub : Hub
                 }
 
                 placedRects.Add((startX, startY, pieceWidth, pieceHeight));
-                state.Pieces[id] = new PiecePosition(id, (float)startX, (float)startY, id);
+                var piecePosition = new PiecePosition(id, (float)startX, (float)startY, id);
+                state.Pieces[id] = piecePosition;
+                piecePositions[id] = piecePosition;
             }
 
             await Clients.Group(roomCode).SendAsync("BoardState", new
@@ -172,7 +200,7 @@ public class PuzzleHub : Hub
                 boardHeight = state.BoardHeight,
                 rows = state.Rows,
                 columns = state.Columns,
-                pieces = state.Pieces.Values
+                pieces = piecePositions
             });
         }
     }
