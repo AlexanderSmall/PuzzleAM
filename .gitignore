@@ -361,3 +361,8 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Local SQLite database files
+PuzzleAM/app.db
+PuzzleAM/app.db-shm
+PuzzleAM/app.db-wal
