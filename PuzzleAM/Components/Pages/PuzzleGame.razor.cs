@@ -46,6 +46,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     private bool puzzleUploadPending;
     private bool sendingPendingPuzzle;
     private bool isPuzzleLoading;
+    private CancellationTokenSource? pendingPuzzleRetryCts;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -310,6 +311,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     {
         timer?.Dispose();
         objRef?.Dispose();
+        CancelPendingPuzzleRetry();
         await Task.CompletedTask;
     }
 
@@ -322,6 +324,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
 
         if (!scriptLoaded || string.IsNullOrEmpty(RoomCode) || string.IsNullOrEmpty(pendingImageDataUrl) || !joined)
         {
+            SchedulePendingPuzzleRetry();
             return;
         }
 
@@ -332,17 +335,20 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             if (puzzleSet)
             {
                 puzzleUploadPending = false;
+                CancelPendingPuzzleRetry();
             }
             else
             {
                 puzzleUploadPending = true;
                 Logger.LogInformation("Delaying puzzle upload until the connection is restored.");
+                SchedulePendingPuzzleRetry();
             }
         }
         catch (Exception ex) when (IsDisconnectedException(ex))
         {
             puzzleUploadPending = true;
             Logger.LogInformation(ex, "Delaying puzzle upload until the connection is restored.");
+            SchedulePendingPuzzleRetry();
         }
         catch (Exception ex)
         {
@@ -350,10 +356,75 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             Logger.LogError(ex, "Error setting puzzle");
             isPuzzleLoading = false;
             await InvokeAsync(StateHasChanged);
+            CancelPendingPuzzleRetry();
         }
         finally
         {
             sendingPendingPuzzle = false;
+        }
+    }
+
+    private void SchedulePendingPuzzleRetry()
+    {
+        if (!puzzleUploadPending)
+        {
+            CancelPendingPuzzleRetry();
+            return;
+        }
+
+        CancelPendingPuzzleRetry();
+
+        pendingPuzzleRetryCts = new CancellationTokenSource();
+        _ = RetryPendingPuzzleAfterDelayAsync(pendingPuzzleRetryCts.Token);
+    }
+
+    private void CancelPendingPuzzleRetry()
+    {
+        if (pendingPuzzleRetryCts is null)
+        {
+            return;
+        }
+
+        try
+        {
+            pendingPuzzleRetryCts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        finally
+        {
+            pendingPuzzleRetryCts.Dispose();
+            pendingPuzzleRetryCts = null;
+        }
+    }
+
+    private async Task RetryPendingPuzzleAfterDelayAsync(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5), token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        if (token.IsCancellationRequested)
+        {
+            return;
+        }
+
+        try
+        {
+            await InvokeAsync(TrySendPendingPuzzleAsync);
+        }
+        catch (TaskCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error retrying pending puzzle upload.");
         }
     }
 
