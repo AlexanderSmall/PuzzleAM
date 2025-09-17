@@ -45,6 +45,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     private int pendingPieceCount;
     private bool puzzleUploadPending;
     private bool sendingPendingPuzzle;
+    private bool isPuzzleLoading;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -149,6 +150,8 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         pendingImageDataUrl = imageDataUrl;
         pendingPieceCount = selectedPieces;
         puzzleUploadPending = true;
+        isPuzzleLoading = true;
+        StateHasChanged();
         await TrySendPendingPuzzleAsync();
         if (puzzleUploadPending)
         {
@@ -233,23 +236,36 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     }
 
     [JSInvokable]
-    public Task PuzzleLoaded()
+    public async Task PuzzleLoaded()
     {
-        if (puzzleStarted)
+        await InvokeAsync(() =>
         {
-            return Task.CompletedTask;
-        }
-        completionRecorded = false;
-        stopwatch.Restart();
-        elapsed = TimeSpan.Zero;
-        timer?.Dispose();
-        timer = new Timer(_ =>
-        {
-            elapsed = stopwatch.Elapsed;
-            InvokeAsync(StateHasChanged);
-        }, null, 0, 1000);
-        puzzleStarted = true;
-        return Task.CompletedTask;
+            isPuzzleLoading = false;
+            if (puzzleStarted)
+            {
+                StateHasChanged();
+                return;
+            }
+
+            completionRecorded = false;
+            stopwatch.Restart();
+            elapsed = TimeSpan.Zero;
+            timer?.Dispose();
+            timer = new Timer(_ =>
+            {
+                elapsed = stopwatch.Elapsed;
+                InvokeAsync(StateHasChanged);
+            }, null, 0, 1000);
+            puzzleStarted = true;
+            StateHasChanged();
+        });
+    }
+
+    [JSInvokable]
+    public Task PuzzleLoading(bool loading)
+    {
+        isPuzzleLoading = loading;
+        return InvokeAsync(StateHasChanged);
     }
 
     [JSInvokable]
@@ -332,6 +348,8 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         {
             puzzleUploadPending = false;
             Logger.LogError(ex, "Error setting puzzle");
+            isPuzzleLoading = false;
+            await InvokeAsync(StateHasChanged);
         }
         finally
         {
