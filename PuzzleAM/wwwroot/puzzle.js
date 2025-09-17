@@ -116,6 +116,13 @@ async function startHubConnection() {
         if (currentRoomCode) {
             try {
                 await hubConnection.invoke("JoinRoom", currentRoomCode);
+                if (puzzleEventHandler) {
+                    try {
+                        await puzzleEventHandler.invokeMethodAsync("OnHubReconnected");
+                    } catch (err) {
+                        console.error('Error notifying reconnection handler', err);
+                    }
+                }
             } catch (e) {
                 console.error('Error rejoining room', e);
             }
