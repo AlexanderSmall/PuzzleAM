@@ -302,8 +302,16 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         sendingPendingPuzzle = true;
         try
         {
-            await JS.InvokeVoidAsync("setPuzzle", RoomCode, pendingImageDataUrl, pendingPieceCount);
-            puzzleUploadPending = false;
+            var puzzleSet = await JS.InvokeAsync<bool>("setPuzzle", RoomCode, pendingImageDataUrl, pendingPieceCount);
+            if (puzzleSet)
+            {
+                puzzleUploadPending = false;
+            }
+            else
+            {
+                puzzleUploadPending = true;
+                Logger.LogInformation("Delaying puzzle upload until the connection is restored.");
+            }
         }
         catch (Exception ex) when (IsDisconnectedException(ex))
         {

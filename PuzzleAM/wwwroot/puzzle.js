@@ -303,15 +303,64 @@ window.createRoom = async function (imageDataUrl, pieceCount) {
     return null;
 };
 
+async function waitForConnectedState(timeoutMs = 10000) {
+    const connection = hubConnection;
+    if (!connection) {
+        return false;
+    }
+
+    if (connection.state === signalR.HubConnectionState.Connected) {
+        return true;
+    }
+
+    const start = Date.now();
+
+    return await new Promise(resolve => {
+        const checkState = () => {
+            if (!hubConnection) {
+                resolve(false);
+                return;
+            }
+
+            const state = hubConnection.state;
+            if (state === signalR.HubConnectionState.Connected) {
+                resolve(true);
+                return;
+            }
+
+            if (state === signalR.HubConnectionState.Disconnected) {
+                resolve(false);
+                return;
+            }
+
+            if (Date.now() - start >= timeoutMs) {
+                resolve(false);
+                return;
+            }
+
+            setTimeout(checkState, 100);
+        };
+
+        checkState();
+    });
+}
+
 window.setPuzzle = async function (roomCode, imageDataUrl, pieceCount) {
     await ensureHubConnection();
-    if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
-        try {
-            await hubConnection.invoke("SetPuzzle", roomCode, imageDataUrl, pieceCount);
-        } catch (error) {
-            console.error('Error setting puzzle', error);
-            alert('Failed to set puzzle. Please try again.');
-        }
+
+    const isConnected = await waitForConnectedState();
+    if (!isConnected) {
+        console.info('SetPuzzle deferred because the hub connection is not ready.');
+        return false;
+    }
+
+    try {
+        await hubConnection.invoke("SetPuzzle", roomCode, imageDataUrl, pieceCount);
+        return true;
+    } catch (error) {
+        console.error('Error setting puzzle', error);
+        alert('Failed to set puzzle. Please try again.');
+        throw error;
     }
 };
 
