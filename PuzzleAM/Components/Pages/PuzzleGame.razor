@@ -46,6 +46,16 @@
     <div class="timer-display">Time: @elapsed.ToString(@"hh\:mm\:ss")</div>
 </div>
 
+@if (isPuzzleLoading)
+{
+    <div class="loading-overlay" role="status" aria-live="polite">
+        <div class="loading-content">
+            <div class="spinner-border text-light" role="presentation"></div>
+            <span class="loading-text">Preparing puzzle...</span>
+        </div>
+    </div>
+}
+
 
 <div id="puzzleContainer"></div>
 

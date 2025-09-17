@@ -68,6 +68,17 @@ window.registerPuzzleEventHandler = function (dotNetHelper) {
     puzzleEventHandler = dotNetHelper;
 };
 
+function notifyPuzzleLoading(isLoading) {
+    if (!puzzleEventHandler) {
+        return;
+    }
+    try {
+        puzzleEventHandler.invokeMethodAsync('PuzzleLoading', isLoading);
+    } catch (err) {
+        console.error('Error notifying loading state', err);
+    }
+}
+
 function isMobileDevice() {
     if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') {
         return navigator.userAgentData.mobile;
@@ -427,11 +438,14 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
         });
     }
 
+    notifyPuzzleLoading(true);
+
     let loadedImage;
     try {
         loadedImage = await loadPuzzleImage(imageDataUrl);
     } catch (error) {
         console.error('Failed to decode puzzle image', error);
+        notifyPuzzleLoading(false);
         return;
     }
 
@@ -480,6 +494,7 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
 
         const container = document.getElementById(containerId);
         if (!container) {
+            notifyPuzzleLoading(false);
             disposeSource();
             return;
         }
@@ -669,6 +684,7 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                 } else if (currentGeneration === window.puzzleGeneration) {
                     updateAllShadows();
                     playStartSound();
+                    notifyPuzzleLoading(false);
                     if (puzzleEventHandler) {
                         puzzleEventHandler.invokeMethodAsync('PuzzleLoaded');
                     }
@@ -676,6 +692,7 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                 }
             } catch (err) {
                 console.error('Error while generating puzzle pieces', err);
+                notifyPuzzleLoading(false);
                 disposeSource();
             }
         }
@@ -683,6 +700,7 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
         requestAnimationFrame(buildNextBatch);
     } catch (error) {
         console.error('Error constructing puzzle', error);
+        notifyPuzzleLoading(false);
         disposeSource();
     }
 };
