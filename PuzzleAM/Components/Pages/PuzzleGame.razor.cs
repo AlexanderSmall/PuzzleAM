@@ -223,6 +223,16 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     }
 
     [JSInvokable]
+    public async Task OnHubReconnected()
+    {
+        await TrySendPendingPuzzleAsync();
+        if (puzzleUploadPending)
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    [JSInvokable]
     public Task PuzzleLoaded()
     {
         if (puzzleStarted)
