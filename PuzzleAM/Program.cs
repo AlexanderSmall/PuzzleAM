@@ -12,10 +12,14 @@ using PuzzleAM.Components;
 using PuzzleAM.Hubs;
 using PuzzleAM.ViewServices;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Security.Claims;
+using System.Text;
+using System.Text.RegularExpressions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -219,7 +223,23 @@ using (var scope = app.Services.CreateScope())
                     }
 
                     var databaseCreator = db.Database.GetService<IRelationalDatabaseCreator>();
-                    if (databaseCreator is not null)
+                    var createScript = db.Database.GenerateCreateScript();
+                    var statementsForTable = ExtractCreateStatementsForTable(createScript, tableName).ToList();
+
+                    if (statementsForTable.Count > 0)
+                    {
+                        logger.LogWarning("Attempting targeted recreation of {TableName} using generated create script.", tableName);
+
+                        foreach (var statement in statementsForTable)
+                        {
+                            db.Database.ExecuteSqlRaw(statement);
+                        }
+
+                        connection.Open();
+                        reopenAfterEnsureCreated = true;
+                        tableExists = TableExists();
+                    }
+                    else if (databaseCreator is not null)
                     {
                         databaseCreator.CreateTables();
 
@@ -254,6 +274,153 @@ using (var scope = app.Services.CreateScope())
             }
         }
     }
+}
+
+static IEnumerable<string> ExtractCreateStatementsForTable(string createScript, string tableName)
+{
+    var statements = SplitSqlStatements(createScript);
+    foreach (var statement in statements)
+    {
+        var trimmedStatement = statement.Trim();
+        if (IsCreateTableForTable(trimmedStatement, tableName))
+        {
+            yield return EnsureIfNotExists(trimmedStatement, "CREATE TABLE") + ";";
+        }
+        else if (IsCreateIndexForTable(trimmedStatement, tableName))
+        {
+            var keyword = trimmedStatement.StartsWith("CREATE UNIQUE INDEX", StringComparison.OrdinalIgnoreCase)
+                ? "CREATE UNIQUE INDEX"
+                : "CREATE INDEX";
+
+            yield return EnsureIfNotExists(trimmedStatement, keyword) + ";";
+        }
+    }
+}
+
+static IEnumerable<string> SplitSqlStatements(string script)
+{
+    var statements = new List<string>();
+    var current = new StringBuilder();
+    var inSingleQuote = false;
+    var inDoubleQuote = false;
+
+    for (var i = 0; i < script.Length; i++)
+    {
+        var c = script[i];
+
+        if (c == '\'' && !inDoubleQuote)
+        {
+            current.Append(c);
+            if (inSingleQuote && i + 1 < script.Length && script[i + 1] == '\'')
+            {
+                current.Append(script[i + 1]);
+                i++;
+            }
+            else
+            {
+                inSingleQuote = !inSingleQuote;
+            }
+
+            continue;
+        }
+
+        if (c == '"' && !inSingleQuote)
+        {
+            current.Append(c);
+            if (inDoubleQuote && i + 1 < script.Length && script[i + 1] == '"')
+            {
+                current.Append(script[i + 1]);
+                i++;
+            }
+            else
+            {
+                inDoubleQuote = !inDoubleQuote;
+            }
+
+            continue;
+        }
+
+        if (c == ';' && !inSingleQuote && !inDoubleQuote)
+        {
+            var statement = current.ToString();
+            if (!string.IsNullOrWhiteSpace(statement))
+            {
+                statements.Add(statement);
+            }
+
+            current.Clear();
+            continue;
+        }
+
+        current.Append(c);
+    }
+
+    if (current.Length > 0)
+    {
+        var statement = current.ToString();
+        if (!string.IsNullOrWhiteSpace(statement))
+        {
+            statements.Add(statement);
+        }
+    }
+
+    return statements;
+}
+
+static bool IsCreateTableForTable(string statement, string tableName)
+{
+    var match = Regex.Match(statement, "^CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?(?<name>\"[^\"]+\"|\\[[^\\]]+\\]|`[^`]+`|\\S+)", RegexOptions.IgnoreCase);
+    if (!match.Success)
+    {
+        return false;
+    }
+
+    return IdentifierEquals(match.Groups["name"].Value, tableName);
+}
+
+static bool IsCreateIndexForTable(string statement, string tableName)
+{
+    var match = Regex.Match(statement, "^CREATE\\s+(?:UNIQUE\\s+)?INDEX\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?(?<name>\"[^\"]+\"|\\[[^\\]]+\\]|`[^`]+`|\\S+)\\s+ON\\s+(?<table>\"[^\"]+\"|\\[[^\\]]+\\]|`[^`]+`|\\S+)", RegexOptions.IgnoreCase);
+    if (!match.Success)
+    {
+        return false;
+    }
+
+    return IdentifierEquals(match.Groups["table"].Value, tableName);
+}
+
+static bool IdentifierEquals(string identifier, string tableName)
+{
+    var unwrapped = identifier.Trim();
+    if (unwrapped.Length >= 2)
+    {
+        if ((unwrapped.StartsWith("\"") && unwrapped.EndsWith("\"")) ||
+            (unwrapped.StartsWith("[") && unwrapped.EndsWith("]")) ||
+            (unwrapped.StartsWith("`") && unwrapped.EndsWith("`")))
+        {
+            unwrapped = unwrapped.Substring(1, unwrapped.Length - 2);
+        }
+    }
+
+    return string.Equals(unwrapped, tableName, StringComparison.OrdinalIgnoreCase);
+}
+
+static string EnsureIfNotExists(string statement, string keyword)
+{
+    var keywordIndex = statement.IndexOf(keyword, StringComparison.OrdinalIgnoreCase);
+    if (keywordIndex < 0)
+    {
+        return statement;
+    }
+
+    var afterKeywordIndex = keywordIndex + keyword.Length;
+    var remaining = statement.Substring(afterKeywordIndex);
+    if (remaining.TrimStart().StartsWith("IF NOT EXISTS", StringComparison.OrdinalIgnoreCase))
+    {
+        return statement;
+    }
+
+    return statement.Insert(afterKeywordIndex, " IF NOT EXISTS");
 }
 
 // Configure the HTTP request pipeline.
