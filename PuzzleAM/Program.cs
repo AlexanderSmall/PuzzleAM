@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 using PuzzleAM;
 using PuzzleAM.Components;
@@ -75,6 +76,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     if (db.Database.IsSqlite())
     {
         var connection = db.Database.GetDbConnection();
@@ -128,6 +130,67 @@ using (var scope = app.Services.CreateScope())
         }
     }
     db.Database.Migrate();
+
+    if (db.Database.IsSqlite())
+    {
+        const string tableName = "AspNetUsers";
+        var connection = db.Database.GetDbConnection();
+        var connectionWasClosed = connection.State != ConnectionState.Open;
+        if (connectionWasClosed)
+        {
+            connection.Open();
+        }
+
+        var reopenAfterEnsureCreated = false;
+
+        try
+        {
+            bool TableExists()
+            {
+                using var command = connection.CreateCommand();
+                command.CommandText = "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = $name;";
+                var nameParameter = command.CreateParameter();
+                nameParameter.ParameterName = "$name";
+                nameParameter.Value = tableName;
+                command.Parameters.Add(nameParameter);
+                return command.ExecuteScalar() != null;
+            }
+
+            logger.LogInformation("Validating existence of {TableName} after migrations.", tableName);
+            var tableExists = TableExists();
+            if (!tableExists)
+            {
+                logger.LogWarning("{TableName} was not found after migrations. Attempting EnsureCreated to repair the schema.", tableName);
+                db.Database.EnsureCreated();
+
+                if (connection.State != ConnectionState.Open)
+                {
+                    connection.Open();
+                    reopenAfterEnsureCreated = true;
+                }
+
+                tableExists = TableExists();
+                if (!tableExists)
+                {
+                    logger.LogError("EnsureCreated did not create the expected table {TableName}. Failing startup.", tableName);
+                    throw new InvalidOperationException($"The expected table '{tableName}' was not created after migrations and EnsureCreated.");
+                }
+
+                logger.LogInformation("EnsureCreated successfully created {TableName}.", tableName);
+            }
+            else
+            {
+                logger.LogInformation("Confirmed that {TableName} exists after migrations.", tableName);
+            }
+        }
+        finally
+        {
+            if ((connectionWasClosed || reopenAfterEnsureCreated) && connection.State == ConnectionState.Open)
+            {
+                connection.Close();
+            }
+        }
+    }
 }
 
 // Configure the HTTP request pipeline.
