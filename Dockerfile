@@ -20,7 +20,8 @@ WORKDIR /app
 
 # Expose port 8080 and configure Kestrel to listen on all interfaces
 EXPOSE 8080
-ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_URLS=http://+:8080 \
+    Database__Provider=Sqlite
 
 # Copy published output and start the application
 COPY --from=build /app/out .

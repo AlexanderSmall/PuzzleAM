@@ -3,13 +3,15 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 using PuzzleAM;
 using PuzzleAM.Components;
 using PuzzleAM.Hubs;
 using PuzzleAM.ViewServices;
+using System;
+using System.IO;
 using System.Net.Http;
 using System.Security.Claims;
-using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,22 +28,40 @@ builder.Services.AddScoped(sp => new HttpClient
     });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db";
-var sqliteBuilder = new SqliteConnectionStringBuilder(connectionString);
-if (!Path.IsPathRooted(sqliteBuilder.DataSource))
-{
-    var defaultDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PuzzleAM");
-    Directory.CreateDirectory(defaultDataDirectory);
-    sqliteBuilder.DataSource = Path.Combine(defaultDataDirectory, Path.GetFileName(sqliteBuilder.DataSource));
-}
-
-var dataDirectory = Path.GetDirectoryName(sqliteBuilder.DataSource);
-if (!string.IsNullOrEmpty(dataDirectory))
-{
-    Directory.CreateDirectory(dataDirectory);
-}
+var databaseProvider = builder.Configuration["Database:Provider"] ?? "Sqlite";
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(sqliteBuilder.ConnectionString));
+{
+    if (string.Equals(databaseProvider, "Sqlite", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(databaseProvider, "Microsoft.Data.Sqlite", StringComparison.OrdinalIgnoreCase))
+    {
+        var sqliteBuilder = new SqliteConnectionStringBuilder(connectionString);
+        if (!Path.IsPathRooted(sqliteBuilder.DataSource))
+        {
+            var defaultDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PuzzleAM");
+            Directory.CreateDirectory(defaultDataDirectory);
+            sqliteBuilder.DataSource = Path.Combine(defaultDataDirectory, Path.GetFileName(sqliteBuilder.DataSource));
+        }
+
+        var dataDirectory = Path.GetDirectoryName(sqliteBuilder.DataSource);
+        if (!string.IsNullOrEmpty(dataDirectory))
+        {
+            Directory.CreateDirectory(dataDirectory);
+        }
+
+        options.UseSqlite(sqliteBuilder.ConnectionString);
+    }
+    else if (string.Equals(databaseProvider, "Postgres", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(databaseProvider, "PostgreSQL", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(databaseProvider, "Npgsql", StringComparison.OrdinalIgnoreCase))
+    {
+        options.UseNpgsql(connectionString);
+    }
+    else
+    {
+        throw new InvalidOperationException($"Unsupported database provider '{databaseProvider}'.");
+    }
+});
 builder.Services.AddIdentityCore<IdentityUser>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager();
