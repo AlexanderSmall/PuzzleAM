@@ -4,6 +4,7 @@ window.pieceIndex = {};
 window.maxZ = 1;
 // Offset applied around the workspace for puzzle pieces
 window.workspaceOffset = 0;
+window.lockedPieces = new Map();
 let hubConnection;
 let currentRoomCode = null;
 const locallyMovedPieces = new Set();
@@ -199,6 +200,26 @@ async function startHubConnection() {
         }
     });
 
+    hubConnection.on("PiecesLocked", (pieceIds, ownerConnectionId) => {
+        if (!Array.isArray(pieceIds)) {
+            return;
+        }
+        pieceIds.forEach(id => {
+            window.lockedPieces.set(id, ownerConnectionId);
+        });
+        refreshLockVisuals(pieceIds);
+    });
+
+    hubConnection.on("PiecesUnlocked", pieceIds => {
+        if (!Array.isArray(pieceIds)) {
+            return;
+        }
+        pieceIds.forEach(id => {
+            window.lockedPieces.delete(id);
+        });
+        refreshLockVisuals(pieceIds);
+    });
+
     hubConnection.on("BoardState", state => {
         if (state.imageDataUrl) {
             window.createPuzzle(state.imageDataUrl, "puzzleContainer", state);
@@ -249,6 +270,41 @@ function sendMove(piece) {
             };
         }
         hubConnection.invoke("MovePiece", currentRoomCode, payload).catch(err => console.error(err));
+    }
+}
+
+async function requestPieceLock(pieceIds) {
+    if (!Array.isArray(pieceIds) || pieceIds.length === 0) {
+        return false;
+    }
+
+    await ensureHubConnection();
+    if (!hubConnection || hubConnection.state !== signalR.HubConnectionState.Connected) {
+        return false;
+    }
+
+    try {
+        const result = await hubConnection.invoke("TryLockPieces", currentRoomCode, pieceIds);
+        return result === true;
+    } catch (err) {
+        console.error('Error requesting piece lock', err);
+        return false;
+    }
+}
+
+async function releasePieceLock(pieceIds) {
+    if (!Array.isArray(pieceIds) || pieceIds.length === 0) {
+        return;
+    }
+
+    if (!hubConnection || hubConnection.state !== signalR.HubConnectionState.Connected) {
+        return;
+    }
+
+    try {
+        await hubConnection.invoke("ReleasePieces", currentRoomCode, pieceIds);
+    } catch (err) {
+        console.error('Error releasing piece lock', err);
     }
 }
 
@@ -304,6 +360,7 @@ window.resetPuzzleState = function () {
     window.puzzleRows = undefined;
     window.puzzleCols = undefined;
     locallyMovedPieces.clear();
+    window.lockedPieces.clear();
     const container = document.getElementById('puzzleContainer');
     if (container) {
         container.innerHTML = '';
@@ -435,6 +492,15 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
     if (layout.pieces) {
         layout.pieces.forEach(p => {
             window.currentLayout.pieces[p.id] = { ...p };
+        });
+    }
+
+    window.lockedPieces.clear();
+    if (layout.lockedPieces && Array.isArray(layout.lockedPieces)) {
+        layout.lockedPieces.forEach(lock => {
+            if (lock && typeof lock.id === 'number') {
+                window.lockedPieces.set(lock.id, lock.ownerConnectionId);
+            }
         });
     }
 
@@ -666,6 +732,7 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                     window.pieces.push(piece);
                     window.pieceIndex[`${y},${x}`] = piece;
                     makeDraggable(piece, workspace);
+                    refreshPieceLockVisual(pieceIndex);
 
                     x++;
                     if (x === cols) {
@@ -801,21 +868,71 @@ function updateAllShadows() {
     window.pieces.forEach(updatePieceShadow);
 }
 
+function refreshPieceLockVisual(pieceId) {
+    const piece = window.pieces[pieceId];
+    if (!piece) {
+        return;
+    }
+    const owner = window.lockedPieces.get(pieceId);
+    if (owner && hubConnection && owner !== hubConnection.connectionId) {
+        piece.classList.add('locked');
+    } else {
+        piece.classList.remove('locked');
+    }
+}
+
+function refreshLockVisuals(pieceIds) {
+    if (!Array.isArray(pieceIds)) {
+        return;
+    }
+    pieceIds.forEach(refreshPieceLockVisual);
+}
+
 function makeDraggable(el, container) {
     let offsetX = 0, offsetY = 0, lastX = 0, lastY = 0;
 
-    const startDrag = (event) => {
+    const startDrag = async (event) => {
         event.preventDefault();
+
         const rect = el.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
-        const clientX = event.clientX ?? event.touches[0].clientX;
-        const clientY = event.clientY ?? event.touches[0].clientY;
+        const touchPoint = event.touches ? event.touches[0] : null;
+        const clientX = event.clientX ?? touchPoint?.clientX;
+        const clientY = event.clientY ?? touchPoint?.clientY;
+        if (clientX == null || clientY == null) {
+            return;
+        }
+
         offsetX = clientX - rect.left;
         offsetY = clientY - rect.top;
         lastX = parseFloat(el.style.left);
         lastY = parseFloat(el.style.top);
         const groupId = parseInt(el.dataset.groupId);
         const piecesToMove = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
+        const pieceIds = piecesToMove
+            .map(p => parseInt(p.dataset.pieceId))
+            .filter(id => !Number.isNaN(id));
+
+        const isLockedByOther = pieceIds.some(id => {
+            const owner = window.lockedPieces.get(id);
+            return owner && (!hubConnection || owner !== hubConnection.connectionId);
+        });
+        if (isLockedByOther) {
+            return;
+        }
+
+        const lockAcquired = await requestPieceLock(pieceIds);
+        if (!lockAcquired) {
+            return;
+        }
+
+        if (hubConnection && hubConnection.connectionId) {
+            pieceIds.forEach(id => {
+                window.lockedPieces.set(id, hubConnection.connectionId);
+            });
+            refreshLockVisuals(pieceIds);
+        }
+
         setGroupLayer(piecesToMove);
 
         piecesToMove.forEach(p => {
@@ -823,8 +940,15 @@ function makeDraggable(el, container) {
         });
 
         const onMove = (e) => {
-            const moveX = (e.clientX ?? e.touches[0].clientX) - containerRect.left - offsetX;
-            const moveY = (e.clientY ?? e.touches[0].clientY) - containerRect.top - offsetY;
+            const moveTouch = e.touches ? e.touches[0] : null;
+            const moveClientX = e.clientX ?? moveTouch?.clientX;
+            const moveClientY = e.clientY ?? moveTouch?.clientY;
+            if (moveClientX == null || moveClientY == null) {
+                return;
+            }
+
+            const moveX = moveClientX - containerRect.left - offsetX;
+            const moveY = moveClientY - containerRect.top - offsetY;
             let dx = moveX - lastX;
             let dy = moveY - lastY;
 
@@ -862,17 +986,20 @@ function makeDraggable(el, container) {
             document.removeEventListener('touchmove', onMove);
             document.removeEventListener('mouseup', stop);
             document.removeEventListener('touchend', stop);
+            document.removeEventListener('touchcancel', stop);
             piecesToMove.forEach(sendMove);
             piecesToMove.forEach(p => {
                 locallyMovedPieces.delete(parseInt(p.dataset.pieceId));
             });
             snapPiece(el);
+            releasePieceLock(pieceIds);
         };
 
         document.addEventListener('mousemove', onMove);
         document.addEventListener('touchmove', onMove);
         document.addEventListener('mouseup', stop);
         document.addEventListener('touchend', stop);
+        document.addEventListener('touchcancel', stop);
     };
 
     el.addEventListener('mousedown', startDrag);

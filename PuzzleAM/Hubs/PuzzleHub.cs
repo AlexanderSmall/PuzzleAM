@@ -53,6 +53,7 @@ public class PuzzleHub : Hub
             state.ImageDataUrl = imageDataUrl;
             state.PieceCount = pieceCount;
             state.Pieces.Clear();
+            state.PieceLocks.Clear();
 
             double aspect = 1;
             if (!string.IsNullOrEmpty(imageDataUrl))
@@ -200,7 +201,8 @@ public class PuzzleHub : Hub
                 boardHeight = state.BoardHeight,
                 rows = state.Rows,
                 columns = state.Columns,
-                pieces = piecePositions
+                pieces = piecePositions,
+                lockedPieces = state.PieceLocks.Select(kvp => new { id = kvp.Key, ownerConnectionId = kvp.Value })
             });
         }
     }
@@ -221,7 +223,8 @@ public class PuzzleHub : Hub
                 boardHeight = state.BoardHeight,
                 rows = state.Rows,
                 columns = state.Columns,
-                pieces = state.Pieces.Values
+                pieces = state.Pieces.Values,
+                lockedPieces = state.PieceLocks.Select(kvp => new { id = kvp.Key, ownerConnectionId = kvp.Value })
             });
             return state;
         }
@@ -234,8 +237,13 @@ public class PuzzleHub : Hub
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomCode);
         if (Rooms.TryGetValue(roomCode, out var state))
         {
+            var releasedPieces = ReleaseLocksForConnection(state, Context.ConnectionId);
             state.Users.TryRemove(Context.ConnectionId, out _);
             await Clients.Group(roomCode).SendAsync("UserList", state.Users.Values);
+            if (releasedPieces.Count > 0)
+            {
+                await Clients.Group(roomCode).SendAsync("PiecesUnlocked", releasedPieces);
+            }
         }
     }
 
@@ -247,8 +255,68 @@ public class PuzzleHub : Hub
     {
         if (Rooms.TryGetValue(roomCode, out var state))
         {
+            if (state.PieceLocks.TryGetValue(piece.Id, out var owner) && owner != Context.ConnectionId)
+            {
+                return;
+            }
             state.Pieces[piece.Id] = piece;
             await Clients.Group(roomCode).SendAsync("PieceMoved", piece);
+        }
+    }
+
+    public async Task<bool> TryLockPieces(string roomCode, int[] pieceIds)
+    {
+        if (!Rooms.TryGetValue(roomCode, out var state) || pieceIds.Length == 0)
+        {
+            return false;
+        }
+
+        lock (state.SyncRoot)
+        {
+            foreach (var pieceId in pieceIds)
+            {
+                if (state.PieceLocks.TryGetValue(pieceId, out var owner) && owner != Context.ConnectionId)
+                {
+                    return false;
+                }
+            }
+
+            foreach (var pieceId in pieceIds)
+            {
+                state.PieceLocks[pieceId] = Context.ConnectionId;
+            }
+        }
+
+        await Clients.Group(roomCode).SendAsync("PiecesLocked", pieceIds, Context.ConnectionId);
+        return true;
+    }
+
+    public async Task ReleasePieces(string roomCode, int[] pieceIds)
+    {
+        if (!Rooms.TryGetValue(roomCode, out var state) || pieceIds.Length == 0)
+        {
+            return;
+        }
+
+        List<int> released;
+        lock (state.SyncRoot)
+        {
+            released = new List<int>(pieceIds.Length);
+            foreach (var pieceId in pieceIds)
+            {
+                if (state.PieceLocks.TryGetValue(pieceId, out var owner) && owner == Context.ConnectionId)
+                {
+                    if (state.PieceLocks.TryRemove(pieceId, out _))
+                    {
+                        released.Add(pieceId);
+                    }
+                }
+            }
+        }
+
+        if (released.Count > 0)
+        {
+            await Clients.Group(roomCode).SendAsync("PiecesUnlocked", released);
         }
     }
 
@@ -256,12 +324,35 @@ public class PuzzleHub : Hub
     {
         foreach (var kvp in Rooms)
         {
-            if (kvp.Value.Users.TryRemove(Context.ConnectionId, out _))
+            var state = kvp.Value;
+            var released = ReleaseLocksForConnection(state, Context.ConnectionId);
+            if (released.Count > 0)
             {
-                await Clients.Group(kvp.Key).SendAsync("UserList", kvp.Value.Users.Values);
+                await Clients.Group(kvp.Key).SendAsync("PiecesUnlocked", released);
+            }
+
+            if (state.Users.TryRemove(Context.ConnectionId, out _))
+            {
+                await Clients.Group(kvp.Key).SendAsync("UserList", state.Users.Values);
                 break;
             }
         }
         await base.OnDisconnectedAsync(exception);
+    }
+
+    private static List<int> ReleaseLocksForConnection(PuzzleState state, string connectionId)
+    {
+        lock (state.SyncRoot)
+        {
+            var released = new List<int>();
+            foreach (var kvp in state.PieceLocks.ToArray())
+            {
+                if (kvp.Value == connectionId && state.PieceLocks.TryRemove(kvp.Key, out _))
+                {
+                    released.Add(kvp.Key);
+                }
+            }
+            return released;
+        }
     }
 }
