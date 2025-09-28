@@ -1,13 +1,15 @@
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PuzzleAM;
 using PuzzleAM.Components;
 using PuzzleAM.Hubs;
 using PuzzleAM.ViewServices;
-using Microsoft.AspNetCore.Components;
 using System.Net.Http;
 using System.Security.Claims;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,9 +25,23 @@ builder.Services.AddScoped(sp => new HttpClient
         BaseAddress = new Uri(sp.GetRequiredService<NavigationManager>().BaseUri)
     });
 
-var connection = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db";
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db";
+var sqliteBuilder = new SqliteConnectionStringBuilder(connectionString);
+if (!Path.IsPathRooted(sqliteBuilder.DataSource))
+{
+    var defaultDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PuzzleAM");
+    Directory.CreateDirectory(defaultDataDirectory);
+    sqliteBuilder.DataSource = Path.Combine(defaultDataDirectory, Path.GetFileName(sqliteBuilder.DataSource));
+}
+
+var dataDirectory = Path.GetDirectoryName(sqliteBuilder.DataSource);
+if (!string.IsNullOrEmpty(dataDirectory))
+{
+    Directory.CreateDirectory(dataDirectory);
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(connection));
+    options.UseSqlite(sqliteBuilder.ConnectionString));
 builder.Services.AddIdentityCore<IdentityUser>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager();
@@ -38,17 +54,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.EnsureCreated();
-    db.Database.ExecuteSqlRaw(
-        @"CREATE TABLE IF NOT EXISTS CompletedPuzzles (
-            Id INTEGER PRIMARY KEY AUTOINCREMENT,
-            UserId TEXT NOT NULL,
-            UserName TEXT NULL,
-            ImageData BLOB NOT NULL,
-            ContentType TEXT NOT NULL,
-            PieceCount INTEGER NOT NULL,
-            TimeToComplete TEXT NOT NULL
-        );");
+    db.Database.Migrate();
 }
 
 // Configure the HTTP request pipeline.
