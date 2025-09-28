@@ -174,8 +174,8 @@ using (var scope = app.Services.CreateScope())
                 {
                     logger.LogWarning("EnsureCreated did not create the expected table {TableName}. Attempting to rebuild the SQLite database file.", tableName);
 
-                    var builder = new SqliteConnectionStringBuilder(sqliteConnection.ConnectionString);
-                    var dataSource = builder.DataSource;
+                    var sqliteConnectionBuilder = new SqliteConnectionStringBuilder(sqliteConnection.ConnectionString);
+                    var dataSource = sqliteConnectionBuilder.DataSource;
                     if (!string.IsNullOrEmpty(dataSource) && !string.Equals(dataSource, ":memory:", StringComparison.OrdinalIgnoreCase))
                     {
                         var databasePath = Path.IsPathRooted(dataSource)
