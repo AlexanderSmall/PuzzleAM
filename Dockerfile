@@ -8,6 +8,7 @@ COPY PuzzleAM/*.csproj PuzzleAM/
 COPY PuzzleAM.Model/*.csproj PuzzleAM.Model/
 COPY PuzzleAM.View/*.csproj PuzzleAM.View/
 COPY PuzzleAM.ViewServices/*.csproj PuzzleAM.ViewServices/
+COPY PuzzleAM.Tests/*.csproj PuzzleAM.Tests/
 RUN dotnet restore PuzzleAM.sln
 
 # Copy the rest of the source and publish
