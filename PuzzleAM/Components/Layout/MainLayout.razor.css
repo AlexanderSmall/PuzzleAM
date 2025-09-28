@@ -1,4 +1,4 @@
-:root {
+:global(:root) {
     --sidebar-width: 100vw;
 }
 
@@ -27,7 +27,7 @@ main {
 }
 
 @media (min-width: 641px) {
-    :root {
+    :global(:root) {
         --sidebar-width: 250px;
     }
 
