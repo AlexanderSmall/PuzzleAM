@@ -38,26 +38,32 @@ builder.Services.AddScoped(sp => new HttpClient
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db";
 var databaseProvider = builder.Configuration["Database:Provider"] ?? "Sqlite";
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+var sqliteValidationLock = new object();
+var sqliteConfigurationValidated = false;
+string? normalizedSqliteConnectionString = null;
+
+builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
 {
     if (string.Equals(databaseProvider, "Sqlite", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(databaseProvider, "Microsoft.Data.Sqlite", StringComparison.OrdinalIgnoreCase))
     {
-        var sqliteBuilder = new SqliteConnectionStringBuilder(connectionString);
-        if (!Path.IsPathRooted(sqliteBuilder.DataSource))
+        if (!sqliteConfigurationValidated)
         {
-            var defaultDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PuzzleAM");
-            Directory.CreateDirectory(defaultDataDirectory);
-            sqliteBuilder.DataSource = Path.Combine(defaultDataDirectory, Path.GetFileName(sqliteBuilder.DataSource));
+            lock (sqliteValidationLock)
+            {
+                if (!sqliteConfigurationValidated)
+                {
+                    var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+                    normalizedSqliteConnectionString = SqliteConfigurationValidator.ValidateAndNormalizeConnectionString(
+                        connectionString,
+                        databaseProvider,
+                        logger);
+                    sqliteConfigurationValidated = true;
+                }
+            }
         }
 
-        var dataDirectory = Path.GetDirectoryName(sqliteBuilder.DataSource);
-        if (!string.IsNullOrEmpty(dataDirectory))
-        {
-            Directory.CreateDirectory(dataDirectory);
-        }
-
-        options.UseSqlite(sqliteBuilder.ConnectionString);
+        options.UseSqlite(normalizedSqliteConnectionString ?? connectionString);
     }
     else if (string.Equals(databaseProvider, "Postgres", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(databaseProvider, "PostgreSQL", StringComparison.OrdinalIgnoreCase) ||
