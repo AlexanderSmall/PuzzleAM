@@ -1056,13 +1056,32 @@ function snapPiece(el) {
                 // Compare using the raw offsets so near-threshold pieces still connect.
                 if (Math.abs(offsetX) < threshold && Math.abs(offsetY) < threshold) {
                     const neighborGroupId = parseInt(neighbor.dataset.groupId);
+
+                    const neighborGroupPieces = window.pieces.filter(p => parseInt(p.dataset.groupId) === neighborGroupId);
+                    const lockedByOther = neighborGroupPieces.some(p => {
+                        const id = parseInt(p.dataset.pieceId);
+                        if (Number.isNaN(id)) {
+                            return false;
+                        }
+                        const owner = window.lockedPieces.get(id);
+                        if (!owner) {
+                            return false;
+                        }
+                        if (!hubConnection || !hubConnection.connectionId) {
+                            return true;
+                        }
+                        return owner !== hubConnection.connectionId;
+                    });
+
+                    if (lockedByOther) {
+                        continue;
+                    }
+
                     const neighborOffsetX = parseFloat(neighbor.style.left) - parseFloat(neighbor.dataset.correctX);
                     const neighborOffsetY = parseFloat(neighbor.style.top) - parseFloat(neighbor.dataset.correctY);
 
-                    window.pieces.forEach(p => {
-                        if (parseInt(p.dataset.groupId) === neighborGroupId) {
-                            p.dataset.groupId = groupId;
-                        }
+                    neighborGroupPieces.forEach(p => {
+                        p.dataset.groupId = groupId;
                     });
 
                     const finalGroup = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
