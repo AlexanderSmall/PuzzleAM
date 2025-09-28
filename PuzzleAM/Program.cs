@@ -170,6 +170,41 @@ using (var scope = app.Services.CreateScope())
                 }
 
                 tableExists = TableExists();
+                if (!tableExists && connection is SqliteConnection sqliteConnection)
+                {
+                    logger.LogWarning("EnsureCreated did not create the expected table {TableName}. Attempting to rebuild the SQLite database file.", tableName);
+
+                    var builder = new SqliteConnectionStringBuilder(sqliteConnection.ConnectionString);
+                    var dataSource = builder.DataSource;
+                    if (!string.IsNullOrEmpty(dataSource) && !string.Equals(dataSource, ":memory:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var databasePath = Path.IsPathRooted(dataSource)
+                            ? dataSource
+                            : Path.GetFullPath(dataSource);
+
+                        if (connection.State == ConnectionState.Open)
+                        {
+                            connection.Close();
+                        }
+
+                        if (File.Exists(databasePath))
+                        {
+                            File.Delete(databasePath);
+                            logger.LogInformation("Deleted SQLite database file at {DatabasePath} to allow schema recreation.", databasePath);
+                        }
+                        else
+                        {
+                            logger.LogInformation("SQLite database file {DatabasePath} did not exist when attempting to rebuild it.", databasePath);
+                        }
+
+                        db.Database.Migrate();
+
+                        connection.Open();
+                        reopenAfterEnsureCreated = true;
+                        tableExists = TableExists();
+                    }
+                }
+
                 if (!tableExists)
                 {
                     logger.LogError("EnsureCreated did not create the expected table {TableName}. Failing startup.", tableName);
