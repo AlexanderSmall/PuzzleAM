@@ -46,3 +46,10 @@ change the provider and connection string without modifying the code.
 
 After updating configuration, run `dotnet ef database update` (or restart the application) to ensure migrations are applied to
 the configured database.
+
+## Container deployment
+
+The Docker image now reads the `PORT` environment variable when starting the application. Most platforms (including Cloud Run,
+Render, and Heroku-style services) inject this variable automatically. When `PORT` is not set the container listens on
+`8080`, matching the Dockerfile's exposed port. You no longer need to override `ASPNETCORE_URLS` manually; instead set
+`PORT` if your hosting environment requires a different listener port.
