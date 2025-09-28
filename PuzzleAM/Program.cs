@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
@@ -204,6 +206,30 @@ using (var scope = app.Services.CreateScope())
                         connection.Open();
                         reopenAfterEnsureCreated = true;
                         tableExists = TableExists();
+                    }
+                }
+
+                if (!tableExists)
+                {
+                    logger.LogWarning("Attempting to create {TableName} via the relational database creator as a final fallback.", tableName);
+
+                    if (connection.State == ConnectionState.Open)
+                    {
+                        connection.Close();
+                    }
+
+                    var databaseCreator = db.Database.GetService<IRelationalDatabaseCreator>();
+                    if (databaseCreator is not null)
+                    {
+                        databaseCreator.CreateTables();
+
+                        connection.Open();
+                        reopenAfterEnsureCreated = true;
+                        tableExists = TableExists();
+                    }
+                    else
+                    {
+                        logger.LogWarning("No relational database creator was available to rebuild {TableName}.", tableName);
                     }
                 }
 
