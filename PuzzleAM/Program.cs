@@ -9,6 +9,7 @@ using PuzzleAM.Components;
 using PuzzleAM.Hubs;
 using PuzzleAM.ViewServices;
 using System;
+using System.Data;
 using System.IO;
 using System.Net.Http;
 using System.Security.Claims;
@@ -74,6 +75,58 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    if (db.Database.IsSqlite())
+    {
+        var connection = db.Database.GetDbConnection();
+        var shouldCloseConnection = connection.State != ConnectionState.Open;
+        if (shouldCloseConnection)
+        {
+            connection.Open();
+        }
+
+        try
+        {
+            using var historyExistsCommand = connection.CreateCommand();
+            historyExistsCommand.CommandText = "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '__EFMigrationsHistory'";
+            var historyExists = historyExistsCommand.ExecuteScalar() != null;
+
+            using var schemaExistsCommand = connection.CreateCommand();
+            schemaExistsCommand.CommandText = "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'AspNetUsers'";
+            var schemaExists = schemaExistsCommand.ExecuteScalar() != null;
+
+            if (!historyExists && schemaExists)
+            {
+                using (var createHistoryTable = connection.CreateCommand())
+                {
+                    createHistoryTable.CommandText = "CREATE TABLE IF NOT EXISTS \"__EFMigrationsHistory\" (\"MigrationId\" TEXT NOT NULL CONSTRAINT \"PK___EFMigrationsHistory\" PRIMARY KEY, \"ProductVersion\" TEXT NOT NULL)";
+                    createHistoryTable.ExecuteNonQuery();
+                }
+
+                using (var insertBaseline = connection.CreateCommand())
+                {
+                    insertBaseline.CommandText = "INSERT OR IGNORE INTO \"__EFMigrationsHistory\" (\"MigrationId\", \"ProductVersion\") VALUES ($id, $productVersion)";
+                    var idParameter = insertBaseline.CreateParameter();
+                    idParameter.ParameterName = "$id";
+                    idParameter.Value = "20240909000000_InitialCreate";
+                    insertBaseline.Parameters.Add(idParameter);
+
+                    var productVersionParameter = insertBaseline.CreateParameter();
+                    productVersionParameter.ParameterName = "$productVersion";
+                    productVersionParameter.Value = "8.0.7";
+                    insertBaseline.Parameters.Add(productVersionParameter);
+
+                    insertBaseline.ExecuteNonQuery();
+                }
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                connection.Close();
+            }
+        }
+    }
     db.Database.Migrate();
 }
 
