@@ -29,4 +29,7 @@ public class PuzzleState
 
     public ConcurrentDictionary<int, PiecePosition> Pieces { get; } = new();
     public ConcurrentDictionary<string, string> Users { get; } = new();
+    public ConcurrentDictionary<int, string> PieceLocks { get; } = new();
+
+    public object SyncRoot { get; } = new();
 }
