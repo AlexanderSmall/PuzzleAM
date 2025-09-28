@@ -18,11 +18,14 @@ RUN dotnet publish -c Release -o /app/out
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
-# Expose port 8080 and configure Kestrel to listen on all interfaces
+# Expose port 8080 and configure the default database provider
 EXPOSE 8080
-ENV ASPNETCORE_URLS=http://+:8080 \
-    Database__Provider=Sqlite
+ENV Database__Provider=Sqlite
 
-# Copy published output and start the application
+# Copy published output and the entrypoint script
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
 COPY --from=build /app/out .
-ENTRYPOINT ["dotnet", "PuzzleAM.dll"]
+
+# Run the application through the entrypoint script so it respects the PORT environment variable
+ENTRYPOINT ["./docker-entrypoint.sh"]
