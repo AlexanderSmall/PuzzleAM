@@ -15,15 +15,16 @@
 .nav-tab {
     position: fixed;
     top: 1rem;
-    transition: left 0.3s ease;
+    left: 0;
+    transition: transform 0.3s ease;
     z-index: 2000;
     pointer-events: auto;
 }
 
 .nav-tab.open {
-    left: 250px;
+    transform: translateX(calc(var(--sidebar-width) - 100%));
 }
 
 .nav-tab.closed {
-    left: 0;
+    transform: translateX(0);
 }
