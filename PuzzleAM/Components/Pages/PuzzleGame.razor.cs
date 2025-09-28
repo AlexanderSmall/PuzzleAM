@@ -32,8 +32,10 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     private string selectedBackground = "#EFECE6";
     private bool scriptLoaded;
     private bool joined;
+    private const int PanelBreakpoint = 992;
     private bool settingsVisible = false;
     private bool userListVisible = false;
+    private int lastViewportWidth;
     private List<string> users = new();
     private DotNetObjectReference<PuzzleGame>? objRef;
     private readonly Stopwatch stopwatch = new();
@@ -55,6 +57,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             try
             {
                 var width = await JS.InvokeAsync<int>("eval", "window.innerWidth");
+                lastViewportWidth = width;
                 selectedPieces = width < 768 ? 32 : 112;
                 if (width >= 992)
                 {
@@ -67,6 +70,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
                 objRef = DotNetObjectReference.Create(this);
                 await JS.InvokeVoidAsync("registerUserListHandler", objRef);
                 await JS.InvokeVoidAsync("registerPuzzleEventHandler", objRef);
+                await JS.InvokeVoidAsync("registerViewportResizeHandler", objRef);
                 scriptLoaded = true;
 
                 if (!joined && !string.IsNullOrEmpty(RoomCode))
@@ -193,14 +197,28 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         }
     }
 
-    private void ToggleSettings()
+    private async Task ToggleSettings()
     {
-        settingsVisible = !settingsVisible;
+        var shouldShow = !settingsVisible;
+
+        if (shouldShow && await ShouldCollapseToSinglePanelAsync())
+        {
+            userListVisible = false;
+        }
+
+        settingsVisible = shouldShow;
     }
 
-    private void ToggleUserList()
+    private async Task ToggleUserList()
     {
-        userListVisible = !userListVisible;
+        var shouldShow = !userListVisible;
+
+        if (shouldShow && await ShouldCollapseToSinglePanelAsync())
+        {
+            settingsVisible = false;
+        }
+
+        userListVisible = shouldShow;
     }
 
     private async Task ToggleFullScreen()
@@ -310,9 +328,50 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         timer?.Dispose();
-        objRef?.Dispose();
         CancelPendingPuzzleRetry();
+        if (scriptLoaded)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("disposeViewportResizeHandler");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error disposing viewport resize handler");
+            }
+        }
+        objRef?.Dispose();
         await Task.CompletedTask;
+    }
+
+    private async Task<bool> ShouldCollapseToSinglePanelAsync()
+    {
+        try
+        {
+            var width = await JS.InvokeAsync<int>("eval", "window.innerWidth");
+            lastViewportWidth = width;
+            return width < PanelBreakpoint;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error checking viewport width");
+            return false;
+        }
+    }
+
+    [JSInvokable]
+    public Task OnViewportResize(int width)
+    {
+        var previousWidth = lastViewportWidth;
+        lastViewportWidth = width;
+
+        if (width < PanelBreakpoint && width < previousWidth && settingsVisible && userListVisible)
+        {
+            userListVisible = false;
+            return InvokeAsync(StateHasChanged);
+        }
+
+        return Task.CompletedTask;
     }
 
     private async Task TrySendPendingPuzzleAsync()

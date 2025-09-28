@@ -69,6 +69,36 @@ window.registerPuzzleEventHandler = function (dotNetHelper) {
     puzzleEventHandler = dotNetHelper;
 };
 
+let viewportResizeHandler;
+window.registerViewportResizeHandler = function (dotNetHelper) {
+    if (viewportResizeHandler) {
+        window.removeEventListener('resize', viewportResizeHandler);
+    }
+
+    viewportResizeHandler = () => {
+        if (!dotNetHelper) {
+            return;
+        }
+
+        try {
+            dotNetHelper.invokeMethodAsync('OnViewportResize', window.innerWidth || 0);
+        } catch (err) {
+            console.error('Error notifying viewport resize handler', err);
+        }
+    };
+
+    window.addEventListener('resize', viewportResizeHandler);
+};
+
+window.disposeViewportResizeHandler = function () {
+    if (!viewportResizeHandler) {
+        return;
+    }
+
+    window.removeEventListener('resize', viewportResizeHandler);
+    viewportResizeHandler = null;
+};
+
 function notifyPuzzleLoading(isLoading) {
     if (!puzzleEventHandler) {
         return;
