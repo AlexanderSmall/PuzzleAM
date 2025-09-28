@@ -187,6 +187,8 @@ using (var scope = app.Services.CreateScope())
                             connection.Close();
                         }
 
+                        SqliteConnection.ClearPool(sqliteConnection);
+
                         if (File.Exists(databasePath))
                         {
                             File.Delete(databasePath);
