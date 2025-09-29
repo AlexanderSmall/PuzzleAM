@@ -8,6 +8,14 @@ namespace PuzzleAM;
 
 internal static class SqliteConfigurationValidator
 {
+    internal static Func<string, DirectoryInfo> DirectoryCreator
+    {
+        get => _directoryCreator;
+        set => _directoryCreator = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
+    private static Func<string, DirectoryInfo> _directoryCreator = Directory.CreateDirectory;
+
     private static readonly string[] NonSqliteTokens =
     [
         "Host=",
@@ -43,18 +51,7 @@ internal static class SqliteConfigurationValidator
         try
         {
             var sqliteBuilder = new SqliteConnectionStringBuilder(connectionString);
-            if (!Path.IsPathRooted(sqliteBuilder.DataSource))
-            {
-                var defaultDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PuzzleAM");
-                Directory.CreateDirectory(defaultDataDirectory);
-                sqliteBuilder.DataSource = Path.Combine(defaultDataDirectory, Path.GetFileName(sqliteBuilder.DataSource));
-            }
-
-            var dataDirectory = Path.GetDirectoryName(sqliteBuilder.DataSource);
-            if (!string.IsNullOrEmpty(dataDirectory))
-            {
-                Directory.CreateDirectory(dataDirectory);
-            }
+            sqliteBuilder.DataSource = NormalizeDataSource(sqliteBuilder.DataSource);
 
             return sqliteBuilder.ConnectionString;
         }
@@ -75,5 +72,61 @@ internal static class SqliteConfigurationValidator
     private static bool LooksLikeNonSqliteConnectionString(string connectionString)
     {
         return NonSqliteTokens.Any(token => connectionString.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    private static string NormalizeDataSource(string dataSource)
+    {
+        var fileName = Path.GetFileName(dataSource);
+        if (string.IsNullOrEmpty(fileName))
+        {
+            fileName = "PuzzleAM.db";
+        }
+
+        if (!Path.IsPathRooted(dataSource))
+        {
+            var defaultDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PuzzleAM");
+            if (TryEnsureDirectory(defaultDataDirectory, out _))
+            {
+                dataSource = Path.Combine(defaultDataDirectory, fileName);
+            }
+            else
+            {
+                return EnsureFallbackDataSource(fileName);
+            }
+        }
+
+        var dataDirectory = Path.GetDirectoryName(dataSource);
+        if (!string.IsNullOrEmpty(dataDirectory) && !TryEnsureDirectory(dataDirectory, out _))
+        {
+            return EnsureFallbackDataSource(fileName);
+        }
+
+        return dataSource;
+    }
+
+    private static string EnsureFallbackDataSource(string fileName)
+    {
+        var fallbackDirectory = Path.Combine(Path.GetTempPath(), "PuzzleAM");
+        if (!TryEnsureDirectory(fallbackDirectory, out var failure))
+        {
+            throw new InvalidOperationException($"Unable to create the fallback data directory '{fallbackDirectory}'.", failure);
+        }
+
+        return Path.Combine(fallbackDirectory, fileName);
+    }
+
+    private static bool TryEnsureDirectory(string path, out Exception? failure)
+    {
+        try
+        {
+            DirectoryCreator(path);
+            failure = null;
+            return true;
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or NotSupportedException)
+        {
+            failure = ex;
+            return false;
+        }
     }
 }
