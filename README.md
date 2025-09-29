@@ -41,6 +41,8 @@ change the provider and connection string without modifying the code.
 3. Supported provider values are:
 
    - `Sqlite` (default) – stores data in a SQLite database file. The application will create a per-user data directory when needed.
+     If it cannot create that directory (for example, due to read-only storage), the database file falls back to
+     `%TEMP%/PuzzleAM/<database file>` so it can still operate in environments with limited permissions.
    - `Postgres`, `PostgreSQL`, or `Npgsql` – uses the Npgsql Entity Framework Core provider to connect to PostgreSQL-compatible
      databases such as Cloud SQL for PostgreSQL.
 

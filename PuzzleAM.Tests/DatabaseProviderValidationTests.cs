@@ -1,8 +1,10 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using PuzzleAM;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using Xunit;
 
 namespace PuzzleAM.Tests;
@@ -26,6 +28,44 @@ public class DatabaseProviderValidationTests
         Assert.Equal(LogLevel.Error, logEntry.LogLevel);
         Assert.Contains(provider, logEntry.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Host=localhost", logEntry.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ValidateAndNormalizeConnectionString_UsesFallbackDirectoryWhenPrimaryCreationFails()
+    {
+        const string provider = "Sqlite";
+        const string connectionString = "Data Source=puzzle.db";
+        var logger = new TestLogger();
+
+        var defaultDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PuzzleAM");
+        var fallbackDirectory = Path.Combine(Path.GetTempPath(), "PuzzleAM");
+        var attemptedDirectories = new List<string>();
+
+        var originalCreator = SqliteConfigurationValidator.DirectoryCreator;
+        try
+        {
+            SqliteConfigurationValidator.DirectoryCreator = path =>
+            {
+                attemptedDirectories.Add(path);
+                if (string.Equals(path, defaultDataDirectory, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new UnauthorizedAccessException("Access denied for testing");
+                }
+
+                return new DirectoryInfo(path);
+            };
+
+            var normalized = SqliteConfigurationValidator.ValidateAndNormalizeConnectionString(connectionString, provider, logger);
+            var builder = new SqliteConnectionStringBuilder(normalized);
+
+            Assert.Equal(Path.Combine(fallbackDirectory, "puzzle.db"), builder.DataSource);
+            Assert.Contains(defaultDataDirectory, attemptedDirectories);
+            Assert.Contains(fallbackDirectory, attemptedDirectories);
+        }
+        finally
+        {
+            SqliteConfigurationValidator.DirectoryCreator = originalCreator;
+        }
     }
 
     private sealed class TestLogger : ILogger
