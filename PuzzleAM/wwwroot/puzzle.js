@@ -1171,7 +1171,26 @@ window.register = async function (token, model) {
         body: JSON.stringify(model),
         credentials: 'include'
     });
-    return response.ok;
+
+    if (response.ok) {
+        return { success: true };
+    }
+
+    let error = 'Registration failed';
+    try {
+        const data = await response.json();
+        if (typeof data === 'string') {
+            error = data;
+        } else if (data?.message) {
+            error = data.message;
+        } else if (Array.isArray(data?.errors) && data.errors.length > 0) {
+            error = data.errors.join(' ');
+        }
+    } catch {
+        // Ignore JSON parse errors and use the default message
+    }
+
+    return { success: false, error };
 };
 
 window.login = async function (token, model) {

@@ -145,11 +145,12 @@
         if (registerModel.Password != registerModel.ConfirmPassword)
         {
             registerError = "Passwords do not match";
+            registerMessage = null;
             return;
         }
         var token = Antiforgery.GetAntiforgeryToken();
-        var success = await JS.InvokeAsync<bool>("register", token.Value, registerModel);
-        if (success)
+        var result = await JS.InvokeAsync<RegisterResult>("register", token.Value, registerModel);
+        if (result.Success)
         {
             registerError = null;
             registerMessage = "Account created successfully";
@@ -158,7 +159,9 @@
         }
         else
         {
-            registerError = "Registration failed";
+            registerError = string.IsNullOrWhiteSpace(result.Error)
+                ? "Registration failed"
+                : result.Error;
             registerMessage = null;
         }
     }
@@ -195,6 +198,12 @@
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    public class RegisterResult
+    {
+        public bool Success { get; set; }
+        public string? Error { get; set; }
     }
 
     public class LoginModel
