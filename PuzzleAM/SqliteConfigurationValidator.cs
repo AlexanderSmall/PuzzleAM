@@ -76,13 +76,14 @@ internal static class SqliteConfigurationValidator
 
     private static string NormalizeDataSource(string dataSource)
     {
+        var fallbackAllowed = !Path.IsPathRooted(dataSource);
         var fileName = Path.GetFileName(dataSource);
         if (string.IsNullOrEmpty(fileName))
         {
             fileName = "PuzzleAM.db";
         }
 
-        if (!Path.IsPathRooted(dataSource))
+        if (fallbackAllowed)
         {
             var defaultDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PuzzleAM");
             if (TryEnsureDirectory(defaultDataDirectory, out _))
@@ -96,9 +97,14 @@ internal static class SqliteConfigurationValidator
         }
 
         var dataDirectory = Path.GetDirectoryName(dataSource);
-        if (!string.IsNullOrEmpty(dataDirectory) && !TryEnsureDirectory(dataDirectory, out _))
+        if (!string.IsNullOrEmpty(dataDirectory) && !TryEnsureDirectory(dataDirectory, out var failure))
         {
-            return EnsureFallbackDataSource(fileName);
+            if (fallbackAllowed)
+            {
+                return EnsureFallbackDataSource(fileName);
+            }
+
+            throw new InvalidOperationException($"Unable to access the configured data directory '{dataDirectory}'.", failure);
         }
 
         return dataSource;
