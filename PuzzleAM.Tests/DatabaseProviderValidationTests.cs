@@ -28,6 +28,22 @@ public class DatabaseProviderValidationTests
         Assert.Contains("Host=localhost", logEntry.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void ValidateAndNormalizeConnectionString_ThrowsWhenAbsolutePathCannotBeEnsured()
+    {
+        const string provider = "Sqlite";
+        const string connectionString = "Data Source=/dev/null/puzzleam.db";
+        var logger = new TestLogger();
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => SqliteConfigurationValidator.ValidateAndNormalizeConnectionString(connectionString, provider, logger));
+
+        Assert.Contains("/dev/null", exception.Message, StringComparison.OrdinalIgnoreCase);
+
+        var errorLog = Assert.Single(logger.Entries.Where(entry => entry.LogLevel == LogLevel.Error));
+        Assert.Contains("/dev/null", errorLog.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private sealed class TestLogger : ILogger
     {
         public List<TestLogEntry> Entries { get; } = new();
