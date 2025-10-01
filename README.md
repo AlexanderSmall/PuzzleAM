@@ -55,3 +55,30 @@ The Docker image now reads the `PORT` environment variable when starting the app
 Render, and Heroku-style services) inject this variable automatically. When `PORT` is not set the container listens on
 `8080`, matching the Dockerfile's exposed port. You no longer need to override `ASPNETCORE_URLS` manually; instead set
 `PORT` if your hosting environment requires a different listener port.
+
+When building the container you can now choose the database provider through the `DATABASE_PROVIDER` build argument. It
+defaults to `Sqlite`, but setting it ensures production images contain the correct configuration. For example, Google Cloud
+Build uses the `cloudbuild.yaml` file in this repository to build and deploy the image with PostgreSQL enabled:
+
+```bash
+gcloud builds submit --config cloudbuild.yaml --substitutions _CONNECTION_STRING="Host=/cloudsql/PROJECT:REGION:INSTANCE;Database=puzzledb;Username=postgres;Password=CHANGE_ME"
+```
+
+The Cloud Build configuration passes `DATABASE_PROVIDER=Postgres` to `docker build` and deploys to Cloud Run with the
+following environment variables:
+
+```text
+Database__Provider=Postgres
+ConnectionStrings__DefaultConnection=<your PostgreSQL connection string>
+```
+
+If you deploy with `gcloud run deploy` manually, be sure to include the same environment variables:
+
+```bash
+gcloud run deploy puzzleam \
+  --image gcr.io/PROJECT/puzzleam \
+  --region us-central1 \
+  --platform managed \
+  --allow-unauthenticated \
+  --set-env-vars Database__Provider=Postgres,ConnectionStrings__DefaultConnection="<your PostgreSQL connection string>"
+```
