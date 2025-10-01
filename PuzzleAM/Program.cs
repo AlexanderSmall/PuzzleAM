@@ -470,10 +470,33 @@ app.MapPost("/register", async (UserManager<IdentityUser> userManager, SignInMan
     return Results.Ok(new { message = "Account created successfully" });
 });
 
-app.MapPost("/login", async (SignInManager<IdentityUser> signInManager, LoginRequest req) =>
+app.MapPost("/login", async (SignInManager<IdentityUser> signInManager, LoginRequest req, ILogger<Program> logger) =>
 {
     var result = await signInManager.PasswordSignInAsync(req.Username, req.Password, isPersistent: false, lockoutOnFailure: false);
-    return result.Succeeded ? Results.Ok() : Results.BadRequest("Invalid login attempt");
+    if (result.Succeeded)
+    {
+        return Results.Ok();
+    }
+
+    if (result.RequiresTwoFactor)
+    {
+        logger.LogWarning("Login for user {Username} requires two-factor authentication.", req.Username);
+        return Results.BadRequest(new { message = "Two-factor authentication required." });
+    }
+
+    if (result.IsLockedOut)
+    {
+        logger.LogWarning("Login for user {Username} is locked out.", req.Username);
+        return Results.BadRequest(new { message = "Account is locked out." });
+    }
+
+    if (result.IsNotAllowed)
+    {
+        logger.LogWarning("Login for user {Username} is not allowed.", req.Username);
+        return Results.BadRequest(new { message = "Login is not allowed." });
+    }
+
+    return Results.BadRequest(new { message = "Invalid login attempt" });
 });
 
 app.MapPost("/logout", async (SignInManager<IdentityUser> signInManager) =>
