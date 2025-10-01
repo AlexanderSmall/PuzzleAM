@@ -68,6 +68,40 @@ public class DatabaseProviderValidationTests
         }
     }
 
+    [Fact]
+    public void ValidateAndNormalizeConnectionString_ThrowsWhenAbsoluteDirectoryCreationFails()
+    {
+        const string provider = "Sqlite";
+        var absolutePath = Path.Combine(Path.GetTempPath(), "PuzzleAMTests", "custom", "puzzle.db");
+        var connectionString = $"Data Source={absolutePath}";
+        var logger = new TestLogger();
+
+        var dataDirectory = Path.GetDirectoryName(absolutePath)!;
+
+        var originalCreator = SqliteConfigurationValidator.DirectoryCreator;
+        try
+        {
+            SqliteConfigurationValidator.DirectoryCreator = path =>
+            {
+                if (string.Equals(path, dataDirectory, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new UnauthorizedAccessException("Access denied for testing");
+                }
+
+                return new DirectoryInfo(path);
+            };
+
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                SqliteConfigurationValidator.ValidateAndNormalizeConnectionString(connectionString, provider, logger));
+
+            Assert.Contains(dataDirectory, exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            SqliteConfigurationValidator.DirectoryCreator = originalCreator;
+        }
+    }
+
     private sealed class TestLogger : ILogger
     {
         public List<TestLogEntry> Entries { get; } = new();
