@@ -23,6 +23,8 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      - '--add-cloudsql-instances'
+      - '${_CLOUDSQL_INSTANCE}'
       - '--set-env-vars'
       - >-
         Database__Provider=${_DATABASE_PROVIDER},ConnectionStrings__DefaultConnection=${_CONNECTION_STRING}
@@ -32,3 +34,4 @@ substitutions:
   _REGION: us-central1
   _DATABASE_PROVIDER: Postgres
   _CONNECTION_STRING: Host=/cloudsql/PROJECT:REGION:INSTANCE;Database=puzzledb;Username=postgres;Password=CHANGE_ME
+  _CLOUDSQL_INSTANCE: PROJECT:REGION:INSTANCE
