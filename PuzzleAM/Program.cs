@@ -42,6 +42,8 @@ var sqliteValidationLock = new object();
 var sqliteConfigurationValidated = false;
 string? normalizedSqliteConnectionString = null;
 
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
 {
     if (string.Equals(databaseProvider, "Sqlite", StringComparison.OrdinalIgnoreCase) ||
