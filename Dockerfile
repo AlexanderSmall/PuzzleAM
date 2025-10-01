@@ -21,7 +21,8 @@ WORKDIR /app
 
 # Expose port 8080 and configure the default database provider
 EXPOSE 8080
-ENV Database__Provider=Sqlite
+ARG DATABASE_PROVIDER=Sqlite
+ENV Database__Provider=$DATABASE_PROVIDER
 
 # Copy published output and the entrypoint script
 COPY docker-entrypoint.sh ./
