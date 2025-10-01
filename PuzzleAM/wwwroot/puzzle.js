@@ -1203,7 +1203,24 @@ window.login = async function (token, model) {
         body: JSON.stringify(model),
         credentials: 'include'
     });
-    return response.ok;
+
+    if (response.ok) {
+        return { success: true };
+    }
+
+    let error = 'Login failed';
+    try {
+        const data = await response.json();
+        if (typeof data === 'string') {
+            error = data;
+        } else if (data?.message) {
+            error = data.message;
+        }
+    } catch {
+        // Ignore JSON parse errors and use the default message
+    }
+
+    return { success: false, error };
 };
 
 window.logout = async function (token) {
