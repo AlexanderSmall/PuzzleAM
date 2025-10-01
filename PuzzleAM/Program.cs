@@ -453,16 +453,19 @@ app.MapPost("/register", async (UserManager<IdentityUser> userManager, SignInMan
 {
     if (req.Password != req.ConfirmPassword)
     {
-        return Results.BadRequest("Passwords do not match");
+        return Results.BadRequest(new { message = "Passwords do not match" });
     }
+
     var user = new IdentityUser(req.Username);
     var result = await userManager.CreateAsync(user, req.Password);
     if (!result.Succeeded)
     {
-        return Results.BadRequest(result.Errors);
+        var message = string.Join(" ", result.Errors.Select(e => e.Description));
+        return Results.BadRequest(new { message });
     }
+
     await signInManager.SignInAsync(user, isPersistent: false);
-    return Results.Ok();
+    return Results.Ok(new { message = "Account created successfully" });
 });
 
 app.MapPost("/login", async (SignInManager<IdentityUser> signInManager, LoginRequest req) =>
