@@ -169,8 +169,8 @@
     private async Task Login()
     {
         var token = Antiforgery.GetAntiforgeryToken();
-        var success = await JS.InvokeAsync<bool>("login", token.Value, loginModel);
-        if (success)
+        var result = await JS.InvokeAsync<LoginResult>("login", token.Value, loginModel);
+        if (result.Success)
         {
             loginError = null;
             currentUsername = loginModel.Username;
@@ -178,7 +178,9 @@
         }
         else
         {
-            loginError = "Login failed";
+            loginError = string.IsNullOrWhiteSpace(result.Error)
+                ? "Login failed"
+                : result.Error;
         }
     }
 
@@ -210,5 +212,11 @@
     {
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+    }
+
+    public class LoginResult
+    {
+        public bool Success { get; set; }
+        public string? Error { get; set; }
     }
 }
