@@ -38,6 +38,10 @@ change the provider and connection string without modifying the code.
    export ConnectionStrings__DefaultConnection="Host=localhost;Database=puzzledb;Username=postgres;Password=secret"
    ```
 
+   The application also recognises simplified environment variables such as `DATABASE_PROVIDER` and
+   `DATABASE_CONNECTION_STRING`, which can be helpful on platforms that do not support hierarchical
+   configuration keys.
+
 3. Supported provider values are:
 
    - `Sqlite` (default) – stores data in a SQLite database file. The application will create a per-user data directory when needed.
