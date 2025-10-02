@@ -61,8 +61,13 @@ defaults to `Sqlite`, but setting it ensures production images contain the corre
 Build uses the `cloudbuild.yaml` file in this repository to build and deploy the image with PostgreSQL enabled:
 
 ```bash
-gcloud builds submit --config cloudbuild.yaml --substitutions _CONNECTION_STRING="Host=/cloudsql/PROJECT:REGION:INSTANCE;Database=puzzledb;Username=postgres;Password=CHANGE_ME"
+gcloud builds submit --config cloudbuild.yaml \ 
+  --substitutions _CONNECTION_STRING="Host=/cloudsql/PROJECT:REGION:INSTANCE;Database=puzzledb;Username=postgres;Password=CHANGE_ME"
 ```
+
+Update the `_CONNECTION_STRING` substitution with your actual Cloud SQL/PostgreSQL connection string before creating the
+Cloud Build trigger. After the trigger is created, verify in the Google Cloud console that the substitutions section still
+shows `_DATABASE_PROVIDER=Postgres` and your `_CONNECTION_STRING` value so those settings propagate to every build.
 
 The Cloud Build configuration passes `DATABASE_PROVIDER=Postgres` to `docker build` and deploys to Cloud Run with the
 following environment variables:
@@ -72,7 +77,9 @@ Database__Provider=Postgres
 ConnectionStrings__DefaultConnection=<your PostgreSQL connection string>
 ```
 
-If you deploy with `gcloud run deploy` manually, be sure to include the same environment variables:
+After Cloud Run finishes deploying, open the **Variables & Secrets** tab for the service and confirm that both of those
+environment variables are present. If you deploy with `gcloud run deploy` manually, be sure to include the same environment
+variables:
 
 ```bash
 gcloud run deploy puzzleam \
