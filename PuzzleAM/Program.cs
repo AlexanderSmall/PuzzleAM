@@ -38,6 +38,8 @@ builder.Services.AddScoped(sp => new HttpClient
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db";
 var databaseProvider = builder.Configuration["Database:Provider"] ?? "Sqlite";
 
+builder.Services.AddSingleton(new DatabaseProviderInfo(databaseProvider));
+
 var sqliteValidationLock = new object();
 var sqliteConfigurationValidated = false;
 string? normalizedSqliteConnectionString = null;
