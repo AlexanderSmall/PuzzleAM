@@ -21,7 +21,7 @@ WORKDIR /app
 
 # Expose port 8080 and configure the default database provider
 EXPOSE 8080
-ARG DATABASE_PROVIDER=Sqlite
+ARG DATABASE_PROVIDER=Postgres
 ENV Database__Provider=$DATABASE_PROVIDER
 
 # Copy published output and the entrypoint script
