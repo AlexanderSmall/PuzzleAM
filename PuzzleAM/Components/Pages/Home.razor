@@ -6,6 +6,7 @@
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @inject AntiforgeryStateProvider Antiforgery
+@inject DatabaseProviderInfo DatabaseProviderInfo
 @using Microsoft.AspNetCore.Components.Forms
 
 <div class="position-absolute top-0 end-0 p-3 d-flex align-items-center pe-none">
@@ -36,6 +37,7 @@
     {
         <div class="text-danger">@errorMessage</div>
     }
+    <div class="mt-3 text-muted">Currently using @DatabaseProviderInfo.ProviderDescription.</div>
 </div>
 
 <div class="modal fade" id="registerModal" tabindex="-1">
