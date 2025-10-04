@@ -453,8 +453,17 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapHub<PuzzleHub>("/puzzlehub");
 
-app.MapPost("/register", async (UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, RegisterRequest req) =>
+app.MapPost("/register", async (UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, RegisterRequest? req, ILogger<Program> logger) =>
 {
+    if (req is null ||
+        string.IsNullOrWhiteSpace(req.Username) ||
+        string.IsNullOrWhiteSpace(req.Password) ||
+        string.IsNullOrWhiteSpace(req.ConfirmPassword))
+    {
+        logger.LogWarning("Registration rejected due to missing required fields.");
+        return Results.BadRequest(new { message = "Username and password are required." });
+    }
+
     if (req.Password != req.ConfirmPassword)
     {
         return Results.BadRequest(new { message = "Passwords do not match" });
