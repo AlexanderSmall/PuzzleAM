@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -80,6 +81,23 @@ builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =
         throw new InvalidOperationException($"Unsupported database provider '{databaseProvider}'.");
     }
 });
+var dataProtectionKeysPath = Environment.GetEnvironmentVariable("DATA_PROTECTION_KEYS_PATH");
+if (string.IsNullOrWhiteSpace(dataProtectionKeysPath))
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        dataProtectionKeysPath = Path.Combine("/tmp", "aspnet-data-protection");
+    }
+    else
+    {
+        throw new InvalidOperationException("The DATA_PROTECTION_KEYS_PATH environment variable must be set to a shared directory in production environments.");
+    }
+}
+
+Directory.CreateDirectory(dataProtectionKeysPath);
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
 builder.Services.AddIdentityCore<IdentityUser>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager();
