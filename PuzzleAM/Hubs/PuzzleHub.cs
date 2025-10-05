@@ -154,8 +154,40 @@ public class PuzzleHub : Hub
 
             var placedRects = new List<(double x, double y, double w, double h)>(pieceCount);
             var piecePositions = new PiecePosition[pieceCount];
+
+            var horizontalTabs = new int[state.Rows, state.Columns];
+            var verticalTabs = new int[state.Rows, state.Columns];
+
+            int RandomTabSign() => Random.Next(2) == 0 ? -1 : 1;
             for (var id = 0; id < pieceCount; id++)
             {
+                var row = id / state.Columns;
+                var col = id % state.Columns;
+
+                var topTab = row == 0 ? 0 : -verticalTabs[row - 1, col];
+                var leftTab = col == 0 ? 0 : -horizontalTabs[row, col - 1];
+                int rightTab;
+                if (col == state.Columns - 1)
+                {
+                    rightTab = 0;
+                }
+                else
+                {
+                    rightTab = RandomTabSign();
+                    horizontalTabs[row, col] = rightTab;
+                }
+
+                int bottomTab;
+                if (row == state.Rows - 1)
+                {
+                    bottomTab = 0;
+                }
+                else
+                {
+                    bottomTab = RandomTabSign();
+                    verticalTabs[row, col] = bottomTab;
+                }
+
                 double startX, startY;
                 var attempts = 0;
                 while (true)
@@ -188,7 +220,15 @@ public class PuzzleHub : Hub
                 }
 
                 placedRects.Add((startX, startY, pieceWidth, pieceHeight));
-                var piecePosition = new PiecePosition(id, (float)startX, (float)startY, id);
+                var piecePosition = new PiecePosition(
+                    id,
+                    (float)startX,
+                    (float)startY,
+                    id,
+                    topTab,
+                    rightTab,
+                    bottomTab,
+                    leftTab);
                 state.Pieces[id] = piecePosition;
                 piecePositions[id] = piecePosition;
             }
@@ -259,8 +299,23 @@ public class PuzzleHub : Hub
             {
                 return;
             }
-            state.Pieces[piece.Id] = piece;
-            await Clients.Group(roomCode).SendAsync("PieceMoved", piece);
+            PiecePosition pieceToPersist;
+            if (state.Pieces.TryGetValue(piece.Id, out var existing))
+            {
+                pieceToPersist = existing with
+                {
+                    Left = piece.Left,
+                    Top = piece.Top,
+                    GroupId = piece.GroupId
+                };
+            }
+            else
+            {
+                pieceToPersist = piece;
+            }
+
+            state.Pieces[piece.Id] = pieceToPersist;
+            await Clients.Group(roomCode).SendAsync("PieceMoved", pieceToPersist);
         }
     }
 

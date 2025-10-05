@@ -194,13 +194,21 @@ async function startHubConnection() {
             }
             if (window.currentLayout) {
                 window.currentLayout.pieces = window.currentLayout.pieces || [];
-                const stored = { id: data.id, left: data.left, top: data.top };
+                const existingLayout = window.currentLayout.pieces[data.id] || {};
+                const stored = { ...existingLayout, id: data.id, left: data.left, top: data.top };
                 if (data.groupId != null) {
                     stored.groupId = data.groupId;
+                } else if (existingLayout.groupId != null) {
+                    stored.groupId = existingLayout.groupId;
                 } else {
                     const g = parseInt(piece.dataset.groupId);
                     if (!isNaN(g)) stored.groupId = g;
                 }
+                ["topTab", "rightTab", "bottomTab", "leftTab"].forEach(key => {
+                    if (typeof data[key] === 'number') {
+                        stored[key] = data[key];
+                    }
+                });
                 window.currentLayout.pieces[data.id] = stored;
             }
             updatePieceShadow(piece);
@@ -292,12 +300,20 @@ function sendMove(piece) {
         }
         if (window.currentLayout) {
             window.currentLayout.pieces = window.currentLayout.pieces || [];
-            window.currentLayout.pieces[payload.id] = {
-                id: payload.id,
-                left: payload.left,
-                top: payload.top,
-                groupId: payload.groupId
-            };
+            const existingLayout = window.currentLayout.pieces[payload.id] || {};
+            const updatedLayout = { ...existingLayout, id: payload.id, left: payload.left, top: payload.top };
+            if (payload.groupId != null) {
+                updatedLayout.groupId = payload.groupId;
+            } else if (existingLayout.groupId != null) {
+                updatedLayout.groupId = existingLayout.groupId;
+            }
+            ["topTab", "rightTab", "bottomTab", "leftTab"].forEach(key => {
+                if (typeof existingLayout[key] === 'number') {
+                    payload[key] = existingLayout[key];
+                    updatedLayout[key] = existingLayout[key];
+                }
+            });
+            window.currentLayout.pieces[payload.id] = updatedLayout;
         }
         hubConnection.invoke("MovePiece", currentRoomCode, payload).catch(err => console.error(err));
     }
@@ -521,6 +537,9 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
     };
     if (layout.pieces) {
         layout.pieces.forEach(p => {
+            if (!p || typeof p.id !== 'number') {
+                return;
+            }
             window.currentLayout.pieces[p.id] = { ...p };
         });
     }
@@ -705,28 +724,93 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                 let count = 0;
                 const fragment = document.createDocumentFragment();
                 while (y < rows && count < batchSize) {
-                    const top = y === 0 ? 0 : -vTabs[y - 1][x];
-                    const left = x === 0 ? 0 : -hTabs[y][x - 1];
-                    const right = x === cols - 1 ? 0 : (hTabs[y][x] = Math.random() > 0.5 ? 1 : -1);
-                    const bottom = y === rows - 1 ? 0 : (vTabs[y][x] = Math.random() > 0.5 ? 1 : -1);
+                    const pieceIndex = window.pieces.length;
+                    const layoutPiece = pieceMap[pieceIndex] || {};
+                    const abovePiece = y > 0 ? pieceMap[(y - 1) * cols + x] : null;
+                    const leftPiece = x > 0 ? pieceMap[pieceIndex - 1] : null;
+
+                    const getOrientation = (piece, key) =>
+                        piece && typeof piece[key] === 'number' ? piece[key] : null;
+
+                    let top = getOrientation(layoutPiece, 'topTab');
+                    if (typeof top !== 'number') {
+                        if (y === 0) {
+                            top = 0;
+                        } else {
+                            const aboveBottom = getOrientation(abovePiece, 'bottomTab');
+                            if (typeof aboveBottom === 'number') {
+                                top = -aboveBottom;
+                            } else if (typeof vTabs[y - 1][x] === 'number') {
+                                top = -vTabs[y - 1][x];
+                            } else {
+                                top = 0;
+                            }
+                        }
+                    }
+
+                    let left = getOrientation(layoutPiece, 'leftTab');
+                    if (typeof left !== 'number') {
+                        if (x === 0) {
+                            left = 0;
+                        } else {
+                            const leftRight = getOrientation(leftPiece, 'rightTab');
+                            if (typeof leftRight === 'number') {
+                                left = -leftRight;
+                            } else if (typeof hTabs[y][x - 1] === 'number') {
+                                left = -hTabs[y][x - 1];
+                            } else {
+                                left = 0;
+                            }
+                        }
+                    }
+
+                    let right = getOrientation(layoutPiece, 'rightTab');
+                    if (typeof right !== 'number') {
+                        if (x === cols - 1) {
+                            right = 0;
+                        } else if (typeof hTabs[y][x] === 'number') {
+                            right = hTabs[y][x];
+                        } else {
+                            right = Math.random() > 0.5 ? 1 : -1;
+                        }
+                    }
+                    hTabs[y][x] = right;
+
+                    let bottom = getOrientation(layoutPiece, 'bottomTab');
+                    if (typeof bottom !== 'number') {
+                        if (y === rows - 1) {
+                            bottom = 0;
+                        } else if (typeof vTabs[y][x] === 'number') {
+                            bottom = vTabs[y][x];
+                        } else {
+                            bottom = Math.random() > 0.5 ? 1 : -1;
+                        }
+                    }
+                    vTabs[y][x] = bottom;
+
+                    const normalizedLayoutPiece = {
+                        ...layoutPiece,
+                        id: pieceIndex,
+                        left: typeof layoutPiece.left === 'number' ? layoutPiece.left : 0,
+                        top: typeof layoutPiece.top === 'number' ? layoutPiece.top : 0,
+                        groupId: layoutPiece.groupId !== undefined ? layoutPiece.groupId : pieceIndex,
+                        topTab: top,
+                        rightTab: right,
+                        bottomTab: bottom,
+                        leftTab: left
+                    };
+                    pieceMap[pieceIndex] = normalizedLayoutPiece;
 
                     const piece = document.createElement('canvas');
                     piece.width = pieceWidth + offset * 2;
                     piece.height = pieceHeight + offset * 2;
                     piece.classList.add('puzzle-piece');
 
-                    const pieceIndex = window.pieces.length;
-                    const p = pieceMap[pieceIndex] || { left: 0, top: 0, groupId: pieceIndex };
-                    piece.style.left = boardLeft + p.left * scaledWidth - window.workspaceOffset + 'px';
-                    piece.style.top = boardTop + p.top * scaledHeight - window.workspaceOffset + 'px';
+                    piece.style.left = boardLeft + normalizedLayoutPiece.left * scaledWidth - window.workspaceOffset + 'px';
+                    piece.style.top = boardTop + normalizedLayoutPiece.top * scaledHeight - window.workspaceOffset + 'px';
 
                     if (window.currentLayout) {
-                        window.currentLayout.pieces[pieceIndex] = {
-                            id: pieceIndex,
-                            left: p.left,
-                            top: p.top,
-                            groupId: p.groupId !== undefined ? p.groupId : pieceIndex
-                        };
+                        window.currentLayout.pieces[pieceIndex] = { ...normalizedLayoutPiece };
                     }
 
                     const correctX = boardLeft + x * pieceWidth - window.workspaceOffset;
@@ -735,10 +819,14 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                     piece.dataset.correctY = correctY;
                     piece.dataset.width = pieceWidth;
                     piece.dataset.height = pieceHeight;
-                    piece.dataset.groupId = p.groupId !== undefined ? p.groupId : pieceIndex;
+                    piece.dataset.groupId = normalizedLayoutPiece.groupId;
                     piece.dataset.pieceId = pieceIndex;
                     piece.dataset.row = y;
                     piece.dataset.col = x;
+                    piece.dataset.topTab = top;
+                    piece.dataset.rightTab = right;
+                    piece.dataset.bottomTab = bottom;
+                    piece.dataset.leftTab = left;
 
                     const ctx = piece.getContext('2d');
                     ctx.imageSmoothingEnabled = false;
