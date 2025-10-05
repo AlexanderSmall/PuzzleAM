@@ -3,9 +3,18 @@ namespace PuzzleAM.Model;
 using System.Collections.Concurrent;
 
 /// <summary>
-/// Represents the position of a puzzle piece on the board.
+/// Represents the position of a puzzle piece on the board including its tab
+/// orientations.
 /// </summary>
-public record PiecePosition(int Id, float Left, float Top, int? GroupId);
+public record PiecePosition(
+    int Id,
+    float Left,
+    float Top,
+    int? GroupId,
+    int TopTab,
+    int RightTab,
+    int BottomTab,
+    int LeftTab);
 
 /// <summary>
 /// Maintains the current state of a puzzle session.
