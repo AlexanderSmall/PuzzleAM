@@ -806,8 +806,10 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                     piece.height = pieceHeight + offset * 2;
                     piece.classList.add('puzzle-piece');
 
-                    piece.style.left = boardLeft + normalizedLayoutPiece.left * scaledWidth - window.workspaceOffset + 'px';
-                    piece.style.top = boardTop + normalizedLayoutPiece.top * scaledHeight - window.workspaceOffset + 'px';
+                    const initialLeft = Math.round(boardLeft + normalizedLayoutPiece.left * scaledWidth - window.workspaceOffset);
+                    const initialTop = Math.round(boardTop + normalizedLayoutPiece.top * scaledHeight - window.workspaceOffset);
+                    piece.style.left = initialLeft + 'px';
+                    piece.style.top = initialTop + 'px';
 
                     if (window.currentLayout) {
                         window.currentLayout.pieces[pieceIndex] = { ...normalizedLayoutPiece };
@@ -1205,8 +1207,8 @@ function snapPiece(el) {
                     const finalGroup = window.pieces.filter(p => parseInt(p.dataset.groupId) === groupId);
                     setGroupLayer(finalGroup);
                     finalGroup.forEach(p => {
-                        const targetX = parseFloat(p.dataset.correctX) + neighborOffsetX;
-                        const targetY = parseFloat(p.dataset.correctY) + neighborOffsetY;
+                        const targetX = Math.round(parseFloat(p.dataset.correctX) + neighborOffsetX);
+                        const targetY = Math.round(parseFloat(p.dataset.correctY) + neighborOffsetY);
                         p.style.left = targetX + 'px';
                         p.style.top = targetY + 'px';
                         p.style.filter = 'none';
