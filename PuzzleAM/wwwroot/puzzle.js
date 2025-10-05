@@ -639,11 +639,22 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
             containerWidth / (imageWidth * boundingNormalizedWidth),
             containerHeight / (imageHeight * boundingNormalizedHeight)
         );
-        let scaledWidth = imageWidth * scale;
-        let scaledHeight = imageHeight * scale;
-        let pieceWidth = scaledWidth / cols;
-        let pieceHeight = scaledHeight / rows;
-        let offset = Math.min(pieceWidth, pieceHeight) / 4;
+
+        const scaledPieceWidth = (imageWidth * scale) / cols;
+        const scaledPieceHeight = (imageHeight * scale) / rows;
+        const quantizedPieceWidth = Math.max(1, Math.round(scaledPieceWidth));
+        const quantizedPieceHeight = Math.max(1, Math.round(scaledPieceHeight));
+        let quantizedScale = Math.min(
+            scale,
+            (quantizedPieceWidth * cols) / imageWidth,
+            (quantizedPieceHeight * rows) / imageHeight
+        );
+
+        let scaledWidth = Math.round(imageWidth * quantizedScale);
+        let scaledHeight = Math.round(imageHeight * quantizedScale);
+        let pieceWidth = Math.max(1, Math.round(scaledWidth / cols));
+        let pieceHeight = Math.max(1, Math.round(scaledHeight / rows));
+        let offset = Math.max(0, Math.round(Math.min(pieceWidth, pieceHeight) / 4));
 
         let boundingWidth = scaledWidth * boundingNormalizedWidth;
         let boundingHeight = scaledHeight * boundingNormalizedHeight;
@@ -653,12 +664,12 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
             const widthRatio = containerWidth / totalWidth;
             const heightRatio = containerHeight / totalHeight;
             const adjustment = Math.min(widthRatio, heightRatio);
-            scale *= adjustment;
-            scaledWidth *= adjustment;
-            scaledHeight *= adjustment;
-            pieceWidth = scaledWidth / cols;
-            pieceHeight = scaledHeight / rows;
-            offset = Math.min(pieceWidth, pieceHeight) / 4;
+            quantizedScale *= adjustment;
+            scaledWidth = Math.round(imageWidth * quantizedScale);
+            scaledHeight = Math.round(imageHeight * quantizedScale);
+            pieceWidth = Math.max(1, Math.round(scaledWidth / cols));
+            pieceHeight = Math.max(1, Math.round(scaledHeight / rows));
+            offset = Math.max(0, Math.round(Math.min(pieceWidth, pieceHeight) / 4));
             boundingWidth = scaledWidth * boundingNormalizedWidth;
             boundingHeight = scaledHeight * boundingNormalizedHeight;
             totalWidth = boundingWidth + offset * 2;
@@ -678,11 +689,11 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
 
         const srcPieceWidth = imageWidth / cols;
         const srcPieceHeight = imageHeight / rows;
-        const srcOffsetX = offset / scale;
-        const srcOffsetY = offset / scale;
+        const srcOffsetX = offset / quantizedScale;
+        const srcOffsetY = offset / quantizedScale;
 
-        let boardLeft = (containerWidth - boundingWidth) / 2 + offset - minLeft * scaledWidth;
-        let boardTop = (containerHeight - boundingHeight) / 2 + offset - minTop * scaledHeight;
+        let boardLeft = Math.round((containerWidth - boundingWidth) / 2 + offset - minLeft * scaledWidth);
+        let boardTop = Math.round((containerHeight - boundingHeight) / 2 + offset - minTop * scaledHeight);
 
         // Ensure the puzzle board itself remains within the visible area even
         // if all pieces are shifted to one side.
