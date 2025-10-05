@@ -654,8 +654,6 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
         let scaledHeight = Math.round(imageHeight * quantizedScale);
         let pieceWidth = Math.max(1, Math.round(scaledWidth / cols));
         let pieceHeight = Math.max(1, Math.round(scaledHeight / rows));
-        scaledWidth = pieceWidth * cols;
-        scaledHeight = pieceHeight * rows;
         let offset = Math.max(0, Math.round(Math.min(pieceWidth, pieceHeight) / 4));
 
         let boundingWidth = scaledWidth * boundingNormalizedWidth;
@@ -671,8 +669,6 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
             scaledHeight = Math.round(imageHeight * quantizedScale);
             pieceWidth = Math.max(1, Math.round(scaledWidth / cols));
             pieceHeight = Math.max(1, Math.round(scaledHeight / rows));
-            scaledWidth = pieceWidth * cols;
-            scaledHeight = pieceHeight * rows;
             offset = Math.max(0, Math.round(Math.min(pieceWidth, pieceHeight) / 4));
             boundingWidth = scaledWidth * boundingNormalizedWidth;
             boundingHeight = scaledHeight * boundingNormalizedHeight;
@@ -1109,27 +1105,14 @@ function makeDraggable(el, container) {
             if (maxX + dx > workspaceWidth - window.workspaceOffset) dx = workspaceWidth - window.workspaceOffset - maxX;
             if (maxY + dy > workspaceHeight - window.workspaceOffset) dy = workspaceHeight - window.workspaceOffset - maxY;
 
-            const targetLeft = lastX + dx;
-            const targetTop = lastY + dy;
-            const snappedLeft = Math.round(targetLeft);
-            const snappedTop = Math.round(targetTop);
-            const snappedDx = snappedLeft - lastX;
-            const snappedDy = snappedTop - lastY;
-
-            if (snappedDx === 0 && snappedDy === 0) {
-                return;
-            }
-
             piecesToMove.forEach(p => {
-                const currentLeft = parseFloat(p.style.left);
-                const currentTop = parseFloat(p.style.top);
-                p.style.left = (currentLeft + snappedDx) + 'px';
-                p.style.top = (currentTop + snappedDy) + 'px';
+                p.style.left = (parseFloat(p.style.left) + dx) + 'px';
+                p.style.top = (parseFloat(p.style.top) + dy) + 'px';
                 sendMove(p);
             });
 
-            lastX = snappedLeft;
-            lastY = snappedTop;
+            lastX += dx;
+            lastY += dy;
         };
 
         const stop = () => {
