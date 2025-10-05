@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Cool+Light+Text+Bubbles&display=swap');
+
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     height: 100%;
@@ -30,6 +32,10 @@ a, .btn-link {
 
 h1:focus {
     outline: none;
+}
+
+.landing-title {
+    font-family: 'Cool Light Text Bubbles', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 .valid.modified:not([type=checkbox]) {
