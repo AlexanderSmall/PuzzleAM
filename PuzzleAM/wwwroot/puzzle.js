@@ -4,6 +4,8 @@ window.pieceIndex = {};
 window.maxZ = 1;
 // Offset applied around the workspace for puzzle pieces
 window.workspaceOffset = 0;
+// Small overlap applied to each piece so adjacent edges cover seams when snapped.
+const PIECE_OVERLAP = 1;
 window.lockedPieces = new Map();
 let hubConnection;
 let currentRoomCode = null;
@@ -183,11 +185,11 @@ async function startHubConnection() {
         const piece = window.pieces[data.id];
         if (piece) {
             if (typeof window.boardLeft === 'number' && typeof window.boardWidth === 'number') {
-                piece.style.left = (window.boardLeft + data.left * window.boardWidth - window.workspaceOffset) + "px";
-                piece.style.top = (window.boardTop + data.top * window.boardHeight - window.workspaceOffset) + "px";
+                piece.style.left = (window.boardLeft + data.left * window.boardWidth - window.workspaceOffset - PIECE_OVERLAP) + "px";
+                piece.style.top = (window.boardTop + data.top * window.boardHeight - window.workspaceOffset - PIECE_OVERLAP) + "px";
             } else {
-                piece.style.left = (data.left - window.workspaceOffset) + "px";
-                piece.style.top = (data.top - window.workspaceOffset) + "px";
+                piece.style.left = (data.left - window.workspaceOffset - PIECE_OVERLAP) + "px";
+                piece.style.top = (data.top - window.workspaceOffset - PIECE_OVERLAP) + "px";
             }
             if (data.groupId != null) {
                 piece.dataset.groupId = data.groupId;
@@ -287,8 +289,8 @@ async function startHubConnection() {
 function sendMove(piece) {
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected &&
         typeof window.boardLeft === 'number' && typeof window.boardWidth === 'number') {
-        const left = parseFloat(piece.style.left) + window.workspaceOffset;
-        const top = parseFloat(piece.style.top) + window.workspaceOffset;
+        const left = parseFloat(piece.style.left) + window.workspaceOffset + PIECE_OVERLAP;
+        const top = parseFloat(piece.style.top) + window.workspaceOffset + PIECE_OVERLAP;
         const payload = {
             id: parseInt(piece.dataset.pieceId),
             left: (left - window.boardLeft) / window.boardWidth,
@@ -687,13 +689,14 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
         container.appendChild(workspace);
         window.workspaceOffset = offset;
 
+        const renderOffset = offset + PIECE_OVERLAP;
         const srcPieceWidth = imageWidth / cols;
         const srcPieceHeight = imageHeight / rows;
         const epsilon = 1e-6;
         const scaleX = pieceWidth / Math.max(srcPieceWidth, epsilon);
         const scaleY = pieceHeight / Math.max(srcPieceHeight, epsilon);
-        const srcOffsetX = offset / Math.max(scaleX, epsilon);
-        const srcOffsetY = offset / Math.max(scaleY, epsilon);
+        const srcOffsetX = renderOffset / Math.max(scaleX, epsilon);
+        const srcOffsetY = renderOffset / Math.max(scaleY, epsilon);
 
         let boardLeft = Math.round((containerWidth - boundingWidth) / 2 + offset - minLeft * scaledWidth);
         let boardTop = Math.round((containerHeight - boundingHeight) / 2 + offset - minTop * scaledHeight);
@@ -816,12 +819,12 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                     pieceMap[pieceIndex] = normalizedLayoutPiece;
 
                     const piece = document.createElement('canvas');
-                    piece.width = pieceWidth + offset * 2;
-                    piece.height = pieceHeight + offset * 2;
+                    piece.width = pieceWidth + renderOffset * 2;
+                    piece.height = pieceHeight + renderOffset * 2;
                     piece.classList.add('puzzle-piece');
 
-                    const initialLeft = Math.round(boardLeft + normalizedLayoutPiece.left * scaledWidth - window.workspaceOffset);
-                    const initialTop = Math.round(boardTop + normalizedLayoutPiece.top * scaledHeight - window.workspaceOffset);
+                    const initialLeft = Math.round(boardLeft + normalizedLayoutPiece.left * scaledWidth - window.workspaceOffset - PIECE_OVERLAP);
+                    const initialTop = Math.round(boardTop + normalizedLayoutPiece.top * scaledHeight - window.workspaceOffset - PIECE_OVERLAP);
                     piece.style.left = initialLeft + 'px';
                     piece.style.top = initialTop + 'px';
 
@@ -829,8 +832,8 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                         window.currentLayout.pieces[pieceIndex] = { ...normalizedLayoutPiece };
                     }
 
-                    const correctX = boardLeft + x * pieceWidth - window.workspaceOffset;
-                    const correctY = boardTop + y * pieceHeight - window.workspaceOffset;
+                    const correctX = boardLeft + x * pieceWidth - window.workspaceOffset - PIECE_OVERLAP;
+                    const correctY = boardTop + y * pieceHeight - window.workspaceOffset - PIECE_OVERLAP;
                     piece.dataset.correctX = correctX;
                     piece.dataset.correctY = correctY;
                     piece.dataset.width = pieceWidth;
@@ -848,7 +851,7 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                     ctx.imageSmoothingEnabled = false;
                     ctx.clearRect(0, 0, piece.width, piece.height);
                     ctx.save();
-                    drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, offset);
+                    drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, renderOffset);
                     ctx.clip();
                     ctx.drawImage(
                         source,
@@ -1100,10 +1103,10 @@ function makeDraggable(el, container) {
 
             const workspaceWidth = container.clientWidth - window.workspaceOffset * 2;
             const workspaceHeight = container.clientHeight - window.workspaceOffset * 2;
-            if (minX + dx < -window.workspaceOffset) dx = -window.workspaceOffset - minX;
-            if (minY + dy < -window.workspaceOffset) dy = -window.workspaceOffset - minY;
-            if (maxX + dx > workspaceWidth - window.workspaceOffset) dx = workspaceWidth - window.workspaceOffset - maxX;
-            if (maxY + dy > workspaceHeight - window.workspaceOffset) dy = workspaceHeight - window.workspaceOffset - maxY;
+            if (minX + dx < -window.workspaceOffset - PIECE_OVERLAP) dx = -window.workspaceOffset - PIECE_OVERLAP - minX;
+            if (minY + dy < -window.workspaceOffset - PIECE_OVERLAP) dy = -window.workspaceOffset - PIECE_OVERLAP - minY;
+            if (maxX + dx > workspaceWidth - window.workspaceOffset + PIECE_OVERLAP) dx = workspaceWidth - window.workspaceOffset + PIECE_OVERLAP - maxX;
+            if (maxY + dy > workspaceHeight - window.workspaceOffset + PIECE_OVERLAP) dy = workspaceHeight - window.workspaceOffset + PIECE_OVERLAP - maxY;
 
             piecesToMove.forEach(p => {
                 p.style.left = (parseFloat(p.style.left) + dx) + 'px';
