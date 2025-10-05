@@ -689,8 +689,11 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
 
         const srcPieceWidth = imageWidth / cols;
         const srcPieceHeight = imageHeight / rows;
-        const srcOffsetX = offset / quantizedScale;
-        const srcOffsetY = offset / quantizedScale;
+        const epsilon = 1e-6;
+        const scaleX = pieceWidth / Math.max(srcPieceWidth, epsilon);
+        const scaleY = pieceHeight / Math.max(srcPieceHeight, epsilon);
+        const srcOffsetX = offset / Math.max(scaleX, epsilon);
+        const srcOffsetY = offset / Math.max(scaleY, epsilon);
 
         let boardLeft = Math.round((containerWidth - boundingWidth) / 2 + offset - minLeft * scaledWidth);
         let boardTop = Math.round((containerHeight - boundingHeight) / 2 + offset - minTop * scaledHeight);
