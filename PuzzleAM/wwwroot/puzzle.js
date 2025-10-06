@@ -5,7 +5,7 @@ window.maxZ = 1;
 // Offset applied around the workspace for puzzle pieces
 window.workspaceOffset = 0;
 // Small overlap applied to each piece so adjacent edges cover seams when snapped.
-const PIECE_OVERLAP = 1;
+const PIECE_OVERLAP = 2;
 window.lockedPieces = new Map();
 let hubConnection;
 let currentRoomCode = null;
