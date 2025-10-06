@@ -4,6 +4,8 @@ window.pieceIndex = {};
 window.maxZ = 1;
 // Offset applied around the workspace for puzzle pieces
 window.workspaceOffset = 0;
+// Small overlap applied to each piece so adjacent edges cover seams when snapped.
+const PIECE_OVERLAP = 1;
 window.lockedPieces = new Map();
 let hubConnection;
 let currentRoomCode = null;
@@ -654,7 +656,7 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
         let scaledHeight = Math.round(imageHeight * quantizedScale);
         let pieceWidth = Math.max(1, Math.round(scaledWidth / cols));
         let pieceHeight = Math.max(1, Math.round(scaledHeight / rows));
-        let offset = Math.max(0, Math.round(Math.min(pieceWidth, pieceHeight) / 4));
+        let offset = Math.max(PIECE_OVERLAP, Math.round(Math.min(pieceWidth, pieceHeight) / 4));
 
         let boundingWidth = scaledWidth * boundingNormalizedWidth;
         let boundingHeight = scaledHeight * boundingNormalizedHeight;
@@ -669,7 +671,7 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
             scaledHeight = Math.round(imageHeight * quantizedScale);
             pieceWidth = Math.max(1, Math.round(scaledWidth / cols));
             pieceHeight = Math.max(1, Math.round(scaledHeight / rows));
-            offset = Math.max(0, Math.round(Math.min(pieceWidth, pieceHeight) / 4));
+            offset = Math.max(PIECE_OVERLAP, Math.round(Math.min(pieceWidth, pieceHeight) / 4));
             boundingWidth = scaledWidth * boundingNormalizedWidth;
             boundingHeight = scaledHeight * boundingNormalizedHeight;
             totalWidth = boundingWidth + offset * 2;
@@ -687,13 +689,14 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
         container.appendChild(workspace);
         window.workspaceOffset = offset;
 
+        const renderOffset = offset + PIECE_OVERLAP;
         const srcPieceWidth = imageWidth / cols;
         const srcPieceHeight = imageHeight / rows;
         const epsilon = 1e-6;
         const scaleX = pieceWidth / Math.max(srcPieceWidth, epsilon);
         const scaleY = pieceHeight / Math.max(srcPieceHeight, epsilon);
-        const srcOffsetX = offset / Math.max(scaleX, epsilon);
-        const srcOffsetY = offset / Math.max(scaleY, epsilon);
+        const srcOffsetX = renderOffset / Math.max(scaleX, epsilon);
+        const srcOffsetY = renderOffset / Math.max(scaleY, epsilon);
 
         let boardLeft = Math.round((containerWidth - boundingWidth) / 2 + offset - minLeft * scaledWidth);
         let boardTop = Math.round((containerHeight - boundingHeight) / 2 + offset - minTop * scaledHeight);
@@ -816,8 +819,8 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                     pieceMap[pieceIndex] = normalizedLayoutPiece;
 
                     const piece = document.createElement('canvas');
-                    piece.width = pieceWidth + offset * 2;
-                    piece.height = pieceHeight + offset * 2;
+                    piece.width = pieceWidth + renderOffset * 2;
+                    piece.height = pieceHeight + renderOffset * 2;
                     piece.classList.add('puzzle-piece');
 
                     const initialLeft = Math.round(boardLeft + normalizedLayoutPiece.left * scaledWidth - window.workspaceOffset);
@@ -848,7 +851,7 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                     ctx.imageSmoothingEnabled = false;
                     ctx.clearRect(0, 0, piece.width, piece.height);
                     ctx.save();
-                    drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, offset);
+                    drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, offset, PIECE_OVERLAP);
                     ctx.clip();
                     ctx.drawImage(
                         source,
@@ -906,74 +909,77 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
     }
 };
 
-function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
+function drawPiecePath(ctx, w, h, top, right, bottom, left, offset, overlap) {
     const radius = Math.min(w, h) / 6;
     const neck = radius / 2;
+    const topEdge = offset - overlap;
+    const bottomEdge = offset + h + overlap;
+    const leftEdge = offset - overlap;
+    const rightEdge = offset + w + overlap;
+    const centerX = offset + w / 2;
+    const centerY = offset + h / 2;
+
     ctx.beginPath();
-    ctx.moveTo(offset, offset);
+    ctx.moveTo(leftEdge, topEdge);
 
     // top edge
     if (top === 0) {
-        ctx.lineTo(offset + w, offset);
+        ctx.lineTo(rightEdge, topEdge);
     } else {
         const dir = top;
-        const centerX = offset + w / 2;
         const startX = centerX - radius;
         const endX = centerX + radius;
-        ctx.lineTo(startX, offset);
-        ctx.lineTo(startX, offset - neck * dir);
-        ctx.arc(centerX, offset - neck * dir, radius, Math.PI, 0, dir === -1);
-        ctx.lineTo(endX, offset - neck * dir);
-        ctx.lineTo(endX, offset);
-        ctx.lineTo(offset + w, offset);
+        ctx.lineTo(startX, topEdge);
+        ctx.lineTo(startX, offset - neck * dir - overlap);
+        ctx.arc(centerX, offset - neck * dir - overlap, radius, Math.PI, 0, dir === -1);
+        ctx.lineTo(endX, offset - neck * dir - overlap);
+        ctx.lineTo(endX, topEdge);
+        ctx.lineTo(rightEdge, topEdge);
     }
 
     // right edge
     if (right === 0) {
-        ctx.lineTo(offset + w, offset + h);
+        ctx.lineTo(rightEdge, bottomEdge);
     } else {
         const dir = right;
-        const centerY = offset + h / 2;
         const startY = centerY - radius;
         const endY = centerY + radius;
-        ctx.lineTo(offset + w, startY);
-        ctx.lineTo(offset + w + neck * dir, startY);
-        ctx.arc(offset + w + neck * dir, centerY, radius, -Math.PI / 2, Math.PI / 2, dir === -1);
-        ctx.lineTo(offset + w + neck * dir, endY);
-        ctx.lineTo(offset + w, endY);
-        ctx.lineTo(offset + w, offset + h);
+        ctx.lineTo(rightEdge, startY);
+        ctx.lineTo(rightEdge + neck * dir, startY);
+        ctx.arc(rightEdge + neck * dir, centerY, radius, -Math.PI / 2, Math.PI / 2, dir === -1);
+        ctx.lineTo(rightEdge + neck * dir, endY);
+        ctx.lineTo(rightEdge, endY);
+        ctx.lineTo(rightEdge, bottomEdge);
     }
 
     // bottom edge
     if (bottom === 0) {
-        ctx.lineTo(offset, offset + h);
+        ctx.lineTo(leftEdge, bottomEdge);
     } else {
         const dir = bottom;
-        const centerX = offset + w / 2;
         const startX = centerX + radius;
         const endX = centerX - radius;
-        ctx.lineTo(startX, offset + h);
-        ctx.lineTo(startX, offset + h + neck * dir);
-        ctx.arc(centerX, offset + h + neck * dir, radius, 0, Math.PI, dir === -1);
-        ctx.lineTo(endX, offset + h + neck * dir);
-        ctx.lineTo(endX, offset + h);
-        ctx.lineTo(offset, offset + h);
+        ctx.lineTo(startX, bottomEdge);
+        ctx.lineTo(startX, offset + h + neck * dir + overlap);
+        ctx.arc(centerX, offset + h + neck * dir + overlap, radius, 0, Math.PI, dir === -1);
+        ctx.lineTo(endX, offset + h + neck * dir + overlap);
+        ctx.lineTo(endX, bottomEdge);
+        ctx.lineTo(leftEdge, bottomEdge);
     }
 
     // left edge
     if (left === 0) {
-        ctx.lineTo(offset, offset);
+        ctx.lineTo(leftEdge, topEdge);
     } else {
         const dir = left;
-        const centerY = offset + h / 2;
         const startY = centerY + radius;
         const endY = centerY - radius;
-        ctx.lineTo(offset, startY);
-        ctx.lineTo(offset - neck * dir, startY);
-        ctx.arc(offset - neck * dir, centerY, radius, Math.PI / 2, -Math.PI / 2, dir === -1);
-        ctx.lineTo(offset - neck * dir, endY);
-        ctx.lineTo(offset, endY);
-        ctx.lineTo(offset, offset);
+        ctx.lineTo(leftEdge, startY);
+        ctx.lineTo(leftEdge - neck * dir, startY);
+        ctx.arc(leftEdge - neck * dir, centerY, radius, Math.PI / 2, -Math.PI / 2, dir === -1);
+        ctx.lineTo(leftEdge - neck * dir, endY);
+        ctx.lineTo(leftEdge, endY);
+        ctx.lineTo(leftEdge, topEdge);
     }
 
     ctx.closePath();
