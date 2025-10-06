@@ -185,11 +185,11 @@ async function startHubConnection() {
         const piece = window.pieces[data.id];
         if (piece) {
             if (typeof window.boardLeft === 'number' && typeof window.boardWidth === 'number') {
-                piece.style.left = (window.boardLeft + data.left * window.boardWidth - window.workspaceOffset - PIECE_OVERLAP) + "px";
-                piece.style.top = (window.boardTop + data.top * window.boardHeight - window.workspaceOffset - PIECE_OVERLAP) + "px";
+                piece.style.left = (window.boardLeft + data.left * window.boardWidth - window.workspaceOffset) + "px";
+                piece.style.top = (window.boardTop + data.top * window.boardHeight - window.workspaceOffset) + "px";
             } else {
-                piece.style.left = (data.left - window.workspaceOffset - PIECE_OVERLAP) + "px";
-                piece.style.top = (data.top - window.workspaceOffset - PIECE_OVERLAP) + "px";
+                piece.style.left = (data.left - window.workspaceOffset) + "px";
+                piece.style.top = (data.top - window.workspaceOffset) + "px";
             }
             if (data.groupId != null) {
                 piece.dataset.groupId = data.groupId;
@@ -289,8 +289,8 @@ async function startHubConnection() {
 function sendMove(piece) {
     if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected &&
         typeof window.boardLeft === 'number' && typeof window.boardWidth === 'number') {
-        const left = parseFloat(piece.style.left) + window.workspaceOffset + PIECE_OVERLAP;
-        const top = parseFloat(piece.style.top) + window.workspaceOffset + PIECE_OVERLAP;
+        const left = parseFloat(piece.style.left) + window.workspaceOffset;
+        const top = parseFloat(piece.style.top) + window.workspaceOffset;
         const payload = {
             id: parseInt(piece.dataset.pieceId),
             left: (left - window.boardLeft) / window.boardWidth,
@@ -657,6 +657,10 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
         let pieceWidth = Math.max(1, Math.round(scaledWidth / cols));
         let pieceHeight = Math.max(1, Math.round(scaledHeight / rows));
         let offset = Math.max(0, Math.round(Math.min(pieceWidth, pieceHeight) / 4));
+        const tabRadius = Math.min(pieceWidth, pieceHeight) / 6;
+        const tabNeck = tabRadius / 2;
+        const minimumPadding = PIECE_OVERLAP + tabRadius + tabNeck;
+        offset = Math.max(offset, Math.ceil(minimumPadding));
 
         let boundingWidth = scaledWidth * boundingNormalizedWidth;
         let boundingHeight = scaledHeight * boundingNormalizedHeight;
@@ -672,6 +676,10 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
             pieceWidth = Math.max(1, Math.round(scaledWidth / cols));
             pieceHeight = Math.max(1, Math.round(scaledHeight / rows));
             offset = Math.max(0, Math.round(Math.min(pieceWidth, pieceHeight) / 4));
+            const adjustedTabRadius = Math.min(pieceWidth, pieceHeight) / 6;
+            const adjustedTabNeck = adjustedTabRadius / 2;
+            const adjustedMinimumPadding = PIECE_OVERLAP + adjustedTabRadius + adjustedTabNeck;
+            offset = Math.max(offset, Math.ceil(adjustedMinimumPadding));
             boundingWidth = scaledWidth * boundingNormalizedWidth;
             boundingHeight = scaledHeight * boundingNormalizedHeight;
             totalWidth = boundingWidth + offset * 2;
@@ -689,7 +697,7 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
         container.appendChild(workspace);
         window.workspaceOffset = offset;
 
-        const renderOffset = offset + PIECE_OVERLAP;
+        const renderOffset = offset;
         const srcPieceWidth = imageWidth / cols;
         const srcPieceHeight = imageHeight / rows;
         const epsilon = 1e-6;
@@ -823,8 +831,8 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                     piece.height = pieceHeight + renderOffset * 2;
                     piece.classList.add('puzzle-piece');
 
-                    const initialLeft = Math.round(boardLeft + normalizedLayoutPiece.left * scaledWidth - window.workspaceOffset - PIECE_OVERLAP);
-                    const initialTop = Math.round(boardTop + normalizedLayoutPiece.top * scaledHeight - window.workspaceOffset - PIECE_OVERLAP);
+                    const initialLeft = Math.round(boardLeft + normalizedLayoutPiece.left * scaledWidth - window.workspaceOffset);
+                    const initialTop = Math.round(boardTop + normalizedLayoutPiece.top * scaledHeight - window.workspaceOffset);
                     piece.style.left = initialLeft + 'px';
                     piece.style.top = initialTop + 'px';
 
@@ -832,8 +840,8 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                         window.currentLayout.pieces[pieceIndex] = { ...normalizedLayoutPiece };
                     }
 
-                    const correctX = boardLeft + x * pieceWidth - window.workspaceOffset - PIECE_OVERLAP;
-                    const correctY = boardTop + y * pieceHeight - window.workspaceOffset - PIECE_OVERLAP;
+                    const correctX = boardLeft + x * pieceWidth - window.workspaceOffset;
+                    const correctY = boardTop + y * pieceHeight - window.workspaceOffset;
                     piece.dataset.correctX = correctX;
                     piece.dataset.correctY = correctY;
                     piece.dataset.width = pieceWidth;
@@ -851,7 +859,7 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                     ctx.imageSmoothingEnabled = false;
                     ctx.clearRect(0, 0, piece.width, piece.height);
                     ctx.save();
-                    drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, renderOffset);
+                    drawPiecePath(ctx, pieceWidth, pieceHeight, top, right, bottom, left, renderOffset, PIECE_OVERLAP);
                     ctx.clip();
                     ctx.drawImage(
                         source,
@@ -909,74 +917,79 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
     }
 };
 
-function drawPiecePath(ctx, w, h, top, right, bottom, left, offset) {
+function drawPiecePath(ctx, w, h, top, right, bottom, left, padding, overlap) {
     const radius = Math.min(w, h) / 6;
     const neck = radius / 2;
+    const leftEdge = padding - overlap;
+    const rightEdge = padding + w + overlap;
+    const topEdge = padding - overlap;
+    const bottomEdge = padding + h + overlap;
+
     ctx.beginPath();
-    ctx.moveTo(offset, offset);
+    ctx.moveTo(leftEdge, topEdge);
 
     // top edge
     if (top === 0) {
-        ctx.lineTo(offset + w, offset);
+        ctx.lineTo(rightEdge, topEdge);
     } else {
         const dir = top;
-        const centerX = offset + w / 2;
+        const centerX = padding + w / 2;
         const startX = centerX - radius;
         const endX = centerX + radius;
-        ctx.lineTo(startX, offset);
-        ctx.lineTo(startX, offset - neck * dir);
-        ctx.arc(centerX, offset - neck * dir, radius, Math.PI, 0, dir === -1);
-        ctx.lineTo(endX, offset - neck * dir);
-        ctx.lineTo(endX, offset);
-        ctx.lineTo(offset + w, offset);
+        ctx.lineTo(startX, topEdge);
+        ctx.lineTo(startX, topEdge - neck * dir);
+        ctx.arc(centerX, topEdge - neck * dir, radius, Math.PI, 0, dir === -1);
+        ctx.lineTo(endX, topEdge - neck * dir);
+        ctx.lineTo(endX, topEdge);
+        ctx.lineTo(rightEdge, topEdge);
     }
 
     // right edge
     if (right === 0) {
-        ctx.lineTo(offset + w, offset + h);
+        ctx.lineTo(rightEdge, bottomEdge);
     } else {
         const dir = right;
-        const centerY = offset + h / 2;
+        const centerY = padding + h / 2;
         const startY = centerY - radius;
         const endY = centerY + radius;
-        ctx.lineTo(offset + w, startY);
-        ctx.lineTo(offset + w + neck * dir, startY);
-        ctx.arc(offset + w + neck * dir, centerY, radius, -Math.PI / 2, Math.PI / 2, dir === -1);
-        ctx.lineTo(offset + w + neck * dir, endY);
-        ctx.lineTo(offset + w, endY);
-        ctx.lineTo(offset + w, offset + h);
+        ctx.lineTo(rightEdge, startY);
+        ctx.lineTo(rightEdge + neck * dir, startY);
+        ctx.arc(rightEdge + neck * dir, centerY, radius, -Math.PI / 2, Math.PI / 2, dir === -1);
+        ctx.lineTo(rightEdge + neck * dir, endY);
+        ctx.lineTo(rightEdge, endY);
+        ctx.lineTo(rightEdge, bottomEdge);
     }
 
     // bottom edge
     if (bottom === 0) {
-        ctx.lineTo(offset, offset + h);
+        ctx.lineTo(leftEdge, bottomEdge);
     } else {
         const dir = bottom;
-        const centerX = offset + w / 2;
+        const centerX = padding + w / 2;
         const startX = centerX + radius;
         const endX = centerX - radius;
-        ctx.lineTo(startX, offset + h);
-        ctx.lineTo(startX, offset + h + neck * dir);
-        ctx.arc(centerX, offset + h + neck * dir, radius, 0, Math.PI, dir === -1);
-        ctx.lineTo(endX, offset + h + neck * dir);
-        ctx.lineTo(endX, offset + h);
-        ctx.lineTo(offset, offset + h);
+        ctx.lineTo(startX, bottomEdge);
+        ctx.lineTo(startX, bottomEdge + neck * dir);
+        ctx.arc(centerX, bottomEdge + neck * dir, radius, 0, Math.PI, dir === -1);
+        ctx.lineTo(endX, bottomEdge + neck * dir);
+        ctx.lineTo(endX, bottomEdge);
+        ctx.lineTo(leftEdge, bottomEdge);
     }
 
     // left edge
     if (left === 0) {
-        ctx.lineTo(offset, offset);
+        ctx.lineTo(leftEdge, topEdge);
     } else {
         const dir = left;
-        const centerY = offset + h / 2;
+        const centerY = padding + h / 2;
         const startY = centerY + radius;
         const endY = centerY - radius;
-        ctx.lineTo(offset, startY);
-        ctx.lineTo(offset - neck * dir, startY);
-        ctx.arc(offset - neck * dir, centerY, radius, Math.PI / 2, -Math.PI / 2, dir === -1);
-        ctx.lineTo(offset - neck * dir, endY);
-        ctx.lineTo(offset, endY);
-        ctx.lineTo(offset, offset);
+        ctx.lineTo(leftEdge, startY);
+        ctx.lineTo(leftEdge - neck * dir, startY);
+        ctx.arc(leftEdge - neck * dir, centerY, radius, Math.PI / 2, -Math.PI / 2, dir === -1);
+        ctx.lineTo(leftEdge - neck * dir, endY);
+        ctx.lineTo(leftEdge, endY);
+        ctx.lineTo(leftEdge, topEdge);
     }
 
     ctx.closePath();
@@ -1103,10 +1116,10 @@ function makeDraggable(el, container) {
 
             const workspaceWidth = container.clientWidth - window.workspaceOffset * 2;
             const workspaceHeight = container.clientHeight - window.workspaceOffset * 2;
-            if (minX + dx < -window.workspaceOffset - PIECE_OVERLAP) dx = -window.workspaceOffset - PIECE_OVERLAP - minX;
-            if (minY + dy < -window.workspaceOffset - PIECE_OVERLAP) dy = -window.workspaceOffset - PIECE_OVERLAP - minY;
-            if (maxX + dx > workspaceWidth - window.workspaceOffset + PIECE_OVERLAP) dx = workspaceWidth - window.workspaceOffset + PIECE_OVERLAP - maxX;
-            if (maxY + dy > workspaceHeight - window.workspaceOffset + PIECE_OVERLAP) dy = workspaceHeight - window.workspaceOffset + PIECE_OVERLAP - maxY;
+            if (minX + dx < -window.workspaceOffset) dx = -window.workspaceOffset - minX;
+            if (minY + dy < -window.workspaceOffset) dy = -window.workspaceOffset - minY;
+            if (maxX + dx > workspaceWidth - window.workspaceOffset) dx = workspaceWidth - window.workspaceOffset - maxX;
+            if (maxY + dy > workspaceHeight - window.workspaceOffset) dy = workspaceHeight - window.workspaceOffset - maxY;
 
             piecesToMove.forEach(p => {
                 p.style.left = (parseFloat(p.style.left) + dx) + 'px';
