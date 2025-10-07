@@ -6,29 +6,46 @@
 @inject ApplicationDbContext Db
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<h1>Gallery</h1>
+<div class="gallery-page">
+    <header class="gallery-header">
+        <h1>My Puzzle Gallery</h1>
+        <p class="gallery-subtitle">
+            Celebrate each puzzle you have finished with a vibrant snapshot and the story behind it.
+        </p>
+    </header>
 
-@if (puzzles is null)
-{
-    <p>Loading...</p>
-}
-else if (!puzzles.Any())
-{
-    <p>No completed puzzles yet.</p>
-}
-else
-{
-    <div class="gallery-container">
-        @foreach (var p in puzzles)
-        {
-            <div class="puzzle-item">
-                <img src="@p.ImageDataUrl" alt="Completed puzzle" />
-                <div>Pieces: @p.PieceCount</div>
-                <div>Time: @p.TimeToComplete.ToString(@"hh\:mm\:ss")</div>
-            </div>
-        }
-    </div>
-}
+    @if (puzzles is null)
+    {
+        <div class="gallery-status">Loading your masterpieces...</div>
+    }
+    else if (!puzzles.Any())
+    {
+        <div class="gallery-status empty">You have not completed a puzzle yet—time to create your first!</div>
+    }
+    else
+    {
+        <div class="gallery-grid">
+            @foreach (var p in puzzles)
+            {
+                <article class="gallery-card">
+                    <div class="gallery-image">
+                        <img src="@p.ImageDataUrl" alt="Completed puzzle" loading="lazy" />
+                    </div>
+                    <div class="gallery-details">
+                        <div class="details-row">
+                            <span class="details-label">Pieces</span>
+                            <span class="details-value">@p.PieceCount</span>
+                        </div>
+                        <div class="details-row">
+                            <span class="details-label">Completion Time</span>
+                            <span class="details-value">@p.TimeToComplete.ToString(@"hh\\:mm\\:ss")</span>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</div>
 
 @code {
     private List<CompletedPuzzle>? puzzles;
@@ -51,6 +68,10 @@ else
             {
                 puzzles = new List<CompletedPuzzle>();
             }
+        }
+        else
+        {
+            puzzles = new List<CompletedPuzzle>();
         }
     }
 }
