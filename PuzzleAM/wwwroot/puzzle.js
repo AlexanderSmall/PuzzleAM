@@ -151,7 +151,7 @@ function playApplauseSound() {
 async function startHubConnection() {
     hubConnection = new signalR.HubConnectionBuilder()
         .withUrl("/puzzlehub")
-        .withAutomaticReconnect()
+        .withAutomaticReconnect([0, 2, 5, 10])
         .build();
 
     window.puzzleHub = hubConnection;
@@ -358,6 +358,17 @@ async function releasePieceLock(pieceIds) {
 
 // Start the SignalR connection immediately instead of waiting for the window load event
 let connectionPromise = startHubConnection();
+
+function resumeHubConnectionIfNeeded() {
+    if (document.hidden) {
+        return;
+    }
+
+    ensureHubConnection();
+}
+
+window.addEventListener('visibilitychange', resumeHubConnectionIfNeeded);
+window.addEventListener('focus', resumeHubConnectionIfNeeded);
 
 async function ensureHubConnection() {
     if (!connectionPromise || !hubConnection ||

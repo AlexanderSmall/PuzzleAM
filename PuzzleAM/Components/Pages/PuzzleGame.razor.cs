@@ -119,7 +119,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         // Resize large images more aggressively so we transmit less data. Adjust the
         // maximum dimension based on the device width so smaller devices transmit
         // proportionally smaller images.
-        var deviceWidth = await JS.InvokeAsync<int>("eval", "window.innerWidth");
+        var deviceWidth = await GetDeviceWidthAsync();
         var maxDimension = deviceWidth < 576 ? 400
             : deviceWidth < 992 ? 600
             : 800;
@@ -180,6 +180,24 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         {
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task<int> GetDeviceWidthAsync()
+    {
+        try
+        {
+            return await JS.InvokeAsync<int>("eval", "window.innerWidth");
+        }
+        catch (Exception ex) when (IsDisconnectedException(ex))
+        {
+            Logger.LogInformation(ex, "Falling back to default device width while the JS runtime reconnects.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Unable to determine device width; using fallback value.");
+        }
+
+        return 768;
     }
 
     private async Task CopyRoomCode()
@@ -480,7 +498,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     {
         try
         {
-            await Task.Delay(TimeSpan.FromSeconds(5), token);
+            await Task.Delay(TimeSpan.FromSeconds(2), token);
         }
         catch (TaskCanceledException)
         {
