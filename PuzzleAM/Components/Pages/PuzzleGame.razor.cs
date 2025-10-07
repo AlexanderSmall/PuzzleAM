@@ -125,7 +125,25 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
             : 800;
 
         var file = e.File;
-        await using var stream = file.OpenReadStream(10 * 1024 * 1024);
+
+        // Ask the browser to downscale the image before it is streamed to the
+        // server so the upload completes faster, especially on slower mobile
+        // connections. If the browser cannot perform the resize we fall back to
+        // processing the original image on the server as before.
+        IBrowserFile browserFile = file;
+        var preferredFormat = file.ContentType == "image/png" ? "image/png" : "image/jpeg";
+
+        try
+        {
+            browserFile = await file.RequestImageFileAsync(preferredFormat, maxDimension, maxDimension);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Falling back to server-side image resizing.");
+        }
+
+        var maxReadSize = Math.Min(10 * 1024 * 1024L, browserFile.Size + 1024);
+        await using var stream = browserFile.OpenReadStream(maxReadSize);
         using var image = await Image.LoadAsync(stream);
 
         if (image.Width > maxDimension || image.Height > maxDimension)
@@ -137,7 +155,7 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         }
 
         using var ms = new MemoryStream();
-        var contentType = file.ContentType == "image/png" ? "image/png" : "image/jpeg";
+        var contentType = browserFile.ContentType == "image/png" ? "image/png" : "image/jpeg";
         // Use moderate compression for both JPEG and PNG uploads
         IImageEncoder encoder = contentType == "image/png"
             ? new PngEncoder { CompressionLevel = PngCompressionLevel.DefaultCompression }
