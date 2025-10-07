@@ -12,6 +12,10 @@ let currentRoomCode = null;
 const locallyMovedPieces = new Set();
 // Flag to ensure puzzle completion is only processed once
 window.puzzleCompleted = false;
+// Track whether the connect and applause sounds have already been played for the
+// current puzzle so resize/orientation changes do not replay them.
+window.connectSoundPlayed = false;
+window.applauseSoundPlayed = false;
 
 // Persist the current puzzle layout and image so it can be recreated later
 window.currentLayout = null;
@@ -131,6 +135,10 @@ function playStartSound() {
 }
 
 function playConnectSound() {
+    if (window.connectSoundPlayed) {
+        return;
+    }
+    window.connectSoundPlayed = true;
     try {
         sounds.connect.currentTime = 0;
         sounds.connect.play();
@@ -140,6 +148,10 @@ function playConnectSound() {
 }
 
 function playApplauseSound() {
+    if (window.applauseSoundPlayed) {
+        return;
+    }
+    window.applauseSoundPlayed = true;
     try {
         sounds.applause.currentTime = 0;
         sounds.applause.play();
@@ -409,6 +421,8 @@ window.resetPuzzleState = function () {
     window.maxZ = 1;
     window.workspaceOffset = 0;
     window.puzzleCompleted = false;
+    window.connectSoundPlayed = false;
+    window.applauseSoundPlayed = false;
     window.currentLayout = null;
     window.currentImageDataUrl = null;
     window.currentContainerId = null;
@@ -907,6 +921,9 @@ window.createPuzzle = async function (imageDataUrl, containerId, layout) {
                 } else if (currentGeneration === window.puzzleGeneration) {
                     updateAllShadows();
                     playStartSound();
+                    if (!window.connectSoundPlayed) {
+                        playConnectSound();
+                    }
                     notifyPuzzleLoading(false);
                     if (puzzleEventHandler) {
                         puzzleEventHandler.invokeMethodAsync('PuzzleLoaded');
