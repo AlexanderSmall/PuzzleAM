@@ -35,8 +35,8 @@ builder.Services.AddScoped(sp => new HttpClient
         BaseAddress = new Uri(sp.GetRequiredService<NavigationManager>().BaseUri)
     });
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db";
-var databaseProvider = builder.Configuration["Database:Provider"] ?? "Sqlite";
+var connectionString = DatabaseConfiguration.GetConnectionString(builder.Configuration);
+var databaseProvider = DatabaseConfiguration.GetDatabaseProvider(builder.Configuration);
 
 builder.Services.AddSingleton(new DatabaseProviderInfo(databaseProvider));
 
