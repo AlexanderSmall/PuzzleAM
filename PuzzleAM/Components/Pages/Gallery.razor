@@ -33,6 +33,10 @@
         {
             <article class="gallery-card">
                 <div class="gallery-image">
+                    <button type="button" class="gallery-remove" @onclick="() => RemovePuzzleAsync(p.Id)">
+                        <span aria-hidden="true">&times;</span>
+                        <span class="sr-only">Remove puzzle</span>
+                    </button>
                     <img src="@p.ImageDataUrl" alt="Completed puzzle" loading="lazy" />
                 </div>
                 <div class="gallery-details">
@@ -52,6 +56,7 @@
 
 @code {
     private List<GalleryPuzzle>? puzzles;
+    private string? userId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -59,7 +64,7 @@
         var user = authState.User;
         if (user.Identity?.IsAuthenticated == true)
         {
-            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId is not null)
             {
                 var results = await Db.CompletedPuzzles
@@ -92,6 +97,29 @@
         {
             puzzles = new List<GalleryPuzzle>();
         }
+    }
+
+    private async Task RemovePuzzleAsync(int puzzleId)
+    {
+        if (puzzles is null || userId is null)
+        {
+            return;
+        }
+
+        var puzzle = await Db.CompletedPuzzles
+            .FirstOrDefaultAsync(p => p.Id == puzzleId && p.UserId == userId);
+
+        if (puzzle is null)
+        {
+            return;
+        }
+
+        Db.CompletedPuzzles.Remove(puzzle);
+        await Db.SaveChangesAsync();
+
+        puzzles = puzzles
+            .Where(p => p.Id != puzzleId)
+            .ToList();
     }
 
     private static string BuildImageDataUrl(byte[] imageData, string contentType)
