@@ -273,10 +273,16 @@ async function startHubConnection() {
     });
 
     hubConnection.on("BoardState", state => {
-        if (state.imageDataUrl) {
-            window.resetPuzzleState();
-            window.createPuzzle(state.imageDataUrl, "puzzleContainer", state);
+        if (!state || !state.imageDataUrl) {
+            return;
         }
+
+        const isNewPuzzleImage = state.imageDataUrl !== window.currentImageDataUrl;
+        if (isNewPuzzleImage) {
+            window.resetPuzzleState();
+        }
+
+        window.createPuzzle(state.imageDataUrl, "puzzleContainer", state);
     });
 
     hubConnection.on("UserList", users => {
