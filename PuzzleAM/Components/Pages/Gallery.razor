@@ -1,5 +1,7 @@
 @page "/gallery"
 @rendermode InteractiveServer
+@using System
+@using System.Linq
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.EntityFrameworkCore
@@ -48,7 +50,7 @@
 </div>
 
 @code {
-    private List<CompletedPuzzle>? puzzles;
+    private List<GalleryPuzzle>? puzzles;
 
     protected override async Task OnInitializedAsync()
     {
@@ -59,19 +61,45 @@
             var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId is not null)
             {
-                puzzles = await Db.CompletedPuzzles
+                var results = await Db.CompletedPuzzles
+                    .AsNoTracking()
                     .Where(p => p.UserId == userId)
                     .OrderByDescending(p => p.Id)
+                    .Select(p => new CompletedPuzzleData(
+                        p.Id,
+                        p.PieceCount,
+                        p.TimeToComplete,
+                        p.ContentType,
+                        p.ImageData))
                     .ToListAsync();
+
+                puzzles = results
+                    .Where(p => p.ImageData is { Length: > 0 })
+                    .Select(p => new GalleryPuzzle(
+                        p.Id,
+                        p.PieceCount,
+                        p.TimeToComplete,
+                        BuildImageDataUrl(p.ImageData!, p.ContentType)))
+                    .ToList();
             }
             else
             {
-                puzzles = new List<CompletedPuzzle>();
+                puzzles = new List<GalleryPuzzle>();
             }
         }
         else
         {
-            puzzles = new List<CompletedPuzzle>();
+            puzzles = new List<GalleryPuzzle>();
         }
     }
+
+    private static string BuildImageDataUrl(byte[] imageData, string contentType)
+    {
+        var resolvedContentType = string.IsNullOrWhiteSpace(contentType) ? "image/png" : contentType;
+        return $"data:{resolvedContentType};base64,{Convert.ToBase64String(imageData)}";
+    }
+
+    private sealed record CompletedPuzzleData(int Id, int PieceCount, TimeSpan TimeToComplete, string ContentType, byte[]? ImageData);
+
+    private sealed record GalleryPuzzle(int Id, int PieceCount, TimeSpan TimeToComplete, string ImageDataUrl);
 }
