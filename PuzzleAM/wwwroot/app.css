@@ -234,6 +234,38 @@ h1:focus {
     aspect-ratio: 4 / 3;
 }
 
+.gallery-remove {
+    position: absolute;
+    top: 0.65rem;
+    right: 0.65rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: none;
+    background: rgba(239, 68, 68, 0.92);
+    color: #fff;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 8px 20px -12px rgba(239, 68, 68, 0.9);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.gallery-remove:hover,
+.gallery-remove:focus-visible {
+    background: rgba(220, 38, 38, 0.98);
+    transform: scale(1.05);
+    box-shadow: 0 10px 22px -12px rgba(220, 38, 38, 0.9);
+    outline: none;
+}
+
+.gallery-remove:active {
+    transform: scale(0.97);
+}
+
 .gallery-image img {
     display: block;
     width: 100%;
@@ -272,6 +304,18 @@ h1:focus {
     font-weight: 600;
     color: #0f172a;
     font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+    white-space: nowrap;
 }
 
 @media (max-width: 600px) {
