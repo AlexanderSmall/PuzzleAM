@@ -9,8 +9,6 @@ html, body {
 body {
     margin: 0;
     background-color: #ffffff;
-    background-image: repeating-conic-gradient( rgba(70, 205, 164, 0.2) 0% 25%, rgba(225, 101, 180, 0.2) 0% 50% );
-    background-size: 40px 40px;
 }
 
 a, .btn-link {
@@ -37,6 +35,8 @@ h1:focus {
 
 .landing-title {
     font-family: 'Cool Light Text Bubbles', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 5.5rem;
+    font-weight: 100;
 }
 
 .valid.modified:not([type=checkbox]) {
