@@ -325,7 +325,11 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
         elapsed = TimeSpan.Zero;
         timer?.Dispose();
         timer = null;
-        isPuzzleLoading = true;
+        // When the puzzle state is cleared (for example after creating a new room or
+        // leaving one) there is no content to load yet, so the loading overlay should
+        // disappear. A fresh load will explicitly trigger the loading state through
+        // PuzzleLoading(true) once a puzzle is actually being prepared.
+        isPuzzleLoading = false;
         return InvokeAsync(StateHasChanged);
     }
 
