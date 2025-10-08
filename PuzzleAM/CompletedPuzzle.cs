@@ -14,5 +14,12 @@ public class CompletedPuzzle
     public TimeSpan TimeToComplete { get; set; }
 
     [NotMapped]
-    public string ImageDataUrl => $"data:{ContentType};base64,{Convert.ToBase64String(ImageData)}";
+    public string ImageDataUrl
+    {
+        get
+        {
+            var contentType = string.IsNullOrWhiteSpace(ContentType) ? "image/png" : ContentType;
+            return $"data:{contentType};base64,{Convert.ToBase64String(ImageData)}";
+        }
+    }
 }
