@@ -274,6 +274,7 @@ async function startHubConnection() {
 
     hubConnection.on("BoardState", state => {
         if (state.imageDataUrl) {
+            window.resetPuzzleState();
             window.createPuzzle(state.imageDataUrl, "puzzleContainer", state);
         }
     });
@@ -437,6 +438,13 @@ window.resetPuzzleState = function () {
     const container = document.getElementById('puzzleContainer');
     if (container) {
         container.innerHTML = '';
+    }
+    if (puzzleEventHandler) {
+        try {
+            puzzleEventHandler.invokeMethodAsync('PuzzleReset');
+        } catch (err) {
+            console.error('Error notifying puzzle reset', err);
+        }
     }
 };
 
