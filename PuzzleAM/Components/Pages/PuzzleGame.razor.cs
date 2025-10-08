@@ -317,6 +317,19 @@ public partial class PuzzleGame : ComponentBase, IAsyncDisposable
     }
 
     [JSInvokable]
+    public Task PuzzleReset()
+    {
+        completionRecorded = false;
+        puzzleStarted = false;
+        stopwatch.Reset();
+        elapsed = TimeSpan.Zero;
+        timer?.Dispose();
+        timer = null;
+        isPuzzleLoading = true;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
     public Task PuzzleLoading(bool loading)
     {
         isPuzzleLoading = loading;
