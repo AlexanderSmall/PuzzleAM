@@ -24,30 +24,31 @@
     {
         <div class="gallery-status empty">You have not completed a puzzle yet—time to create your first!</div>
     }
-    else
-    {
-        <div class="gallery-grid">
-            @foreach (var p in puzzles)
-            {
-                <article class="gallery-card">
-                    <div class="gallery-image">
-                        <img src="@p.ImageDataUrl" alt="Completed puzzle" loading="lazy" />
-                    </div>
-                    <div class="gallery-details">
-                        <div class="details-row">
-                            <span class="details-label">Pieces</span>
-                            <span class="details-value">@p.PieceCount</span>
-                        </div>
-                        <div class="details-row">
-                            <span class="details-label">Completion Time</span>
-                            <span class="details-value">@p.TimeToComplete.ToString(@"hh\:mm\:ss")</span>
-                        </div>
-                    </div>
-                </article>
-            }
-        </div>
-    }
 </div>
+
+@if (puzzles?.Any() == true)
+{
+    <div class="gallery-grid">
+        @foreach (var p in puzzles)
+        {
+            <article class="gallery-card">
+                <div class="gallery-image">
+                    <img src="@p.ImageDataUrl" alt="Completed puzzle" loading="lazy" />
+                </div>
+                <div class="gallery-details">
+                    <div class="details-row">
+                        <span class="details-label">Pieces</span>
+                        <span class="details-value">@p.PieceCount</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Completion Time</span>
+                        <span class="details-value">@p.TimeToComplete.ToString(@"hh\:mm\:ss")</span>
+                    </div>
+                </div>
+            </article>
+        }
+    </div>
+}
 
 @code {
     private List<GalleryPuzzle>? puzzles;

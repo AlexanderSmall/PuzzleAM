@@ -1,16 +1,115 @@
-.gallery-container {
+.gallery-page {
     display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem clamp(1rem, 5vw, 3rem);
+    text-align: center;
 }
 
-.puzzle-item {
-    border: 1px solid #ccc;
-    padding: 0.5rem;
+.gallery-header h1 {
+    font-size: clamp(1.75rem, 2.5vw, 2.5rem);
+    margin: 0;
 }
 
-.puzzle-item img {
-    max-width: 200px;
-    height: auto;
-    display: block;
+.gallery-subtitle {
+    color: #6b7280;
+    margin: 0;
+    max-width: 38rem;
+}
+
+.gallery-status {
+    font-size: 1.05rem;
+    color: #4b5563;
+}
+
+.gallery-status.empty {
+    color: #9ca3af;
+}
+
+.gallery-grid {
+    display: grid;
+    gap: 1.75rem;
+    padding: 0 clamp(1rem, 5vw, 3rem) 3rem;
+}
+
+@media (min-width: 1200px) {
+    .gallery-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .gallery-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+}
+
+.gallery-card {
+    background: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.gallery-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 30px rgba(15, 23, 42, 0.15);
+}
+
+.gallery-image {
+    position: relative;
+    padding-top: 75%;
+    overflow: hidden;
+    background: #f3f4f6;
+}
+
+.gallery-image img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.gallery-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem 1.25rem;
+    padding: 1.25rem;
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.details-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
+.details-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+}
+
+.details-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+@media (max-width: 599.98px) {
+    .gallery-grid {
+        padding-inline: 1rem;
+    }
+
+    .gallery-details {
+        grid-template-columns: 1fr;
+    }
 }
