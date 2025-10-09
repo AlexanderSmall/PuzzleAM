@@ -1,0 +1,12 @@
+.home-title {
+    font-size: clamp(2.5rem, 6vw, 6rem);
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: 0.25rem;
+}
+
+@media (max-width: 576px) {
+    .home-title {
+        letter-spacing: 0.15rem;
+    }
+}
