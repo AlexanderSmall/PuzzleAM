@@ -1,0 +1,6 @@
+.home-title {
+    font-size: clamp(2.5rem, 8vw, 6rem);
+    letter-spacing: clamp(0.2rem, 1vw, 1.2rem);
+    text-transform: uppercase;
+    line-height: 1.1;
+}
